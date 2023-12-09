@@ -4,6 +4,9 @@
         "string": "cpp",
         "string_view": "cpp",
         "vector": "cpp",
-        "core": "cpp"
+        "core": "cpp",
+        "deque": "cpp",
+        "__split_buffer": "cpp",
+        "list": "cpp"
     }
 }
