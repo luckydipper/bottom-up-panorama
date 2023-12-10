@@ -66,7 +66,7 @@ int main(){
 	//match의 distance 값이 작을수록 matching이 잘 된 것
 	//min의 값의 3배 또는 good_matches.size() > 60 까지만 goodmatch로 인정해준다.
 	vector<DMatch>good_matches;
-	int distance = 3;
+	int distance = 10;
 	do {
 		vector<DMatch>good_matches2;
 		for (int i = 0; i < descriptors[test_idx_l].rows; i++) {
@@ -75,7 +75,7 @@ int main(){
 		}
 		good_matches = good_matches2;
 		distance -= 1;
-	} while (distance != 2 && good_matches.size() > 2);
+	} while (distance != 2 && good_matches.size() > 60);
 
     Mat matGoodMatches;
     drawMatches(imgs[test_idx_l], keypoints[test_idx_l], imgs[test_idx_r], keypoints[test_idx_r], good_matches, matGoodMatches, Scalar::all(-1), Scalar::all(-1), vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
@@ -95,6 +95,15 @@ int main(){
     Mat projective_img;
 
     warpPerspective(imgs[test_idx_r],projective_img, homography, Size(imgs[test_idx_l].cols*2, imgs[test_idx_l].rows*1.2), INTER_LINEAR);//INTER_CUBIC
+
+
+    Mat panorama;
+    panorama = projective_img.clone();
+    Mat ROI(panorama, Rect(0,0,imgs[test_idx_l].cols, imgs[test_idx_l].rows));
+    imgs[test_idx_l].copyTo(ROI);
+
+    resize(panorama,panorama,Size(panorama.cols/4,panorama.rows/4));
+    imshow("d",panorama);
     resize(projective_img,projective_img, Size(projective_img.cols/4,projective_img.rows/4));
     imshow("a", projective_img);
     
