@@ -4,6 +4,8 @@
 #include <string>
 #include <cassert>
 #include <opencv2/highgui/highgui_c.h>
+#include <opencv2/calib3d.hpp> // FindHomography
+#include <opencv2/calib3d/calib3d_c.h> // CV_RANSAC
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d.hpp> // FeatureDetector, DescriptorExtractor
 #include <opencv2/core.hpp> // inside type,  Keypoints
@@ -59,6 +61,23 @@ namespace bottom_up{
     //     }
         
     // }
+
+
+    //find homography
+
+
+    // TODO : add interpolation method
+    enum Interpolate{
+        linear,
+    };
+
+
+    // Mat perspectiveTransform(const Mat& origin, const Mat& homography, int rows, int cols, bottom_up::Interpolate interpolate_method = bottom_up::Interpolate::linear){
+    //     assert(homography.cols == 3 && homography.rows == 3);
+    //     assert(origin.rows <= rows && origin.cols <= cols);
+        
+    // }
+
 }
 
 
@@ -70,7 +89,7 @@ int main(){
     Mat descriptors[11];
     int end_img_index = 3;
 
-    for(int i=1; i < end_img_index; i++){
+    for(int i=3; i < 5; i++){
         // Load imgs
         string src("../imgs/");
         string index = to_string(i);
@@ -87,26 +106,41 @@ int main(){
         descriptor->compute(imgs[i],keypoints[i],descriptors[i]); // 256bit,  256 pair of points 256X2 points 32=> 8bit*32 bitmap
     }
     //BF Matcher implementation 
-    multimap<int, pair<int,int> > matchs = bottom_up::bruteForceMatcher(descriptors[1],descriptors[2]);
+    multimap<int, pair<int,int> > matchs = bottom_up::bruteForceMatcher(descriptors[3],descriptors[4]);
 
+
+
+
+    // vector<DMatch> matchs_;
+    // Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
+    // matcher->matchs_
     
+    // for(auto m : matchs){
+    //     cout <<" m : " << m.first << "\n" << m.second.first << ", "<<m.second.second <<"\n\n";
+    //     Mat result_img;
 
-    vector<DMatch> matchs_;
-    for(auto m : matchs){
-        cout <<" m : " << m.first << "\n" << m.second.first << ", "<<m.second.second <<"\n\n";
-        matchs_.push_back(DMatch(m.second.first, m.second.second, m.first) );
-    }
-
-    Mat result_img;
-    drawMatches(imgs[1],keypoints[1],imgs[2],keypoints[2],matchs_ ,result_img, Scalar::all(-1),Scalar::all(-1),vector<char>(),DrawMatchesFlags::DEFAULT);
-    cv::resize(result_img,result_img, Size(result_img.cols/4,result_img.rows/4));
-    namedWindow("a",CV_WINDOW_AUTOSIZE);
-    imshow("a", result_img); 
+    //     matchs_.push_back(DMatch(m.second.first, m.second.second, m.first) );
+        //drawMatches(imgs[3],keypoints[3],imgs[4],keypoints[4],matchs_ ,result_img, Scalar::all(-1),Scalar::all(-1),vector<char>(),DrawMatchesFlags::DEFAULT);
+        // cv::resize(result_img,result_img, Size(result_img.cols/4,result_img.rows/4));
+        // imshow("a", result_img); 
         
-    waitKey();
+        // waitKey();
+    //}
+    // namedWindow("a",CV_WINDOW_AUTOSIZE);
 
     // test code
     // cout << bottom_up::hammingDistance(128,5);
     //
     //
+
+
+    vector<Point2f> domain_features, co_domain_features;
+    
+    Mat homography = findHomography(imgs[3],imgs[4],CV_RANSAC);
+    cout << homography;
+    Mat projective_img;
+    warpPerspective(imgs[3],projective_img, homography,Size(imgs[4].cols*2, imgs[4].rows*1.2), INTER_CUBIC);
+    resize(projective_img,projective_img, Size(projective_img.cols/4,projective_img.rows/4));
+    imshow("a", projective_img);
+    waitKey();
 }
