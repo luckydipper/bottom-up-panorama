@@ -1,6 +1,5 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
-#include <map>
 #include <string>
 #include <cassert>
 #include <opencv2/highgui/highgui_c.h>
@@ -10,76 +9,9 @@
 #include <opencv2/features2d.hpp> // FeatureDetector, DescriptorExtractor
 #include <opencv2/core.hpp> // inside type,  Keypoints
 #include <eigen3/Eigen/Core>
-
+#include "matcher.hpp"
 using namespace cv;
 using namespace std;
-// Homography to reference image
-// detector
-// descriptor 
-// macher 
-
-
-namespace bottom_up{
-    int hammingDistance(const uchar code1, const uchar code2){
-        int result = 0;
-        int XOR = (code1 ^ code2);
-        while(XOR >0){
-            if(XOR%2 > 0)
-                result++;
-            XOR >>= 1;
-        }
-        return result;
-    }
-
-    //FLANN matcher
-
-
-    
-    //Brute Force matcher 
-    multimap<int, pair<int,int> > bruteForceMatcher(const Mat & descriptor1, const Mat &descriptor2){
-        assert(descriptor1.rows == descriptor2.rows && descriptor1.cols == descriptor2.cols);
-        multimap<int, pair<int,int>> result_match;
-        int num_features = descriptor1.rows;
-        for(int i = 0; i < num_features; i++){
-            for(int j = 0; j < num_features; j++){
-                int distance=0;
-                for(int bit_seq = 0; bit_seq < descriptor1.cols; bit_seq++){
-                    uchar batch1 = descriptor1.at<int>(i,bit_seq);
-                    uchar batch2 = descriptor2.at<int>(j,bit_seq);
-                    distance += hammingDistance(batch1, batch2);
-                }
-                result_match.insert({distance, {i,j}});
-            }
-        }
-        return result_match;
-    }
-
-    //TODO : should make match class multimap<int, pair<int,int> > 
-    // struct matche{
-    //     matche(const Mat &descriptor1, const Mat &descriptor2){
-             
-    //     }
-        
-    // }
-
-
-    //find homography
-
-
-    // TODO : add interpolation method
-    enum Interpolate{
-        linear,
-    };
-
-
-    // Mat perspectiveTransform(const Mat& origin, const Mat& homography, int rows, int cols, bottom_up::Interpolate interpolate_method = bottom_up::Interpolate::linear){
-    //     assert(homography.cols == 3 && homography.rows == 3);
-    //     assert(origin.rows <= rows && origin.cols <= cols);
-        
-    // }
-
-}
-
 
 
 int main(){
@@ -87,9 +19,10 @@ int main(){
     Mat imgs[11];
     vector<KeyPoint> keypoints[11];
     Mat descriptors[11];
+    
     int end_img_index = 3;
 
-    for(int i=3; i < 5; i++){
+    for(int i=1; i < 10; i++){
         // Load imgs
         string src("../imgs/");
         string index = to_string(i);
@@ -100,47 +33,76 @@ int main(){
         assert(imgs[i].data); 
         
         // detect and descript the imgs
-        Ptr<FeatureDetector> detector = ORB::create(); // by default make 500 features
-        Ptr<DescriptorExtractor> descriptor = ORB::create(); // by default 32 bits per one keypoint. 
+        Ptr<FeatureDetector> detector = ORB::create(); // By default make 500 features
+        Ptr<DescriptorExtractor> descriptor = ORB::create(); // By default 32 byte per one keypoint. 
         detector->detect(imgs[i],keypoints[i]);
-        descriptor->compute(imgs[i],keypoints[i],descriptors[i]); // 256bit,  256 pair of points 256X2 points 32=> 8bit*32 bitmap
+        descriptor->compute(imgs[i],keypoints[i],descriptors[i]); // 256bit, 256 pair of points 256X2 points 32=> 8bit*32 bitmap
+
     }
     //BF Matcher implementation 
-    multimap<int, pair<int,int> > matchs = bottom_up::bruteForceMatcher(descriptors[3],descriptors[4]);
+    //multimap<int, pair<int,int> > matchs = bottom_up::bruteForceMatcher(descriptors[3],descriptors[4]);
 
+    vector<DMatch> matches[11][11];
+    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
 
-
-
-    // vector<DMatch> matchs_;
-    // Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
-    // matcher->matchs_
+    int test_idx_l=4, test_idx_r=3;
+    matcher->match(descriptors[test_idx_l],descriptors[test_idx_r],matches[test_idx_l][test_idx_r]);
     
-    // for(auto m : matchs){
-    //     cout <<" m : " << m.first << "\n" << m.second.first << ", "<<m.second.second <<"\n\n";
-    //     Mat result_img;
 
-    //     matchs_.push_back(DMatch(m.second.first, m.second.second, m.first) );
-        //drawMatches(imgs[3],keypoints[3],imgs[4],keypoints[4],matchs_ ,result_img, Scalar::all(-1),Scalar::all(-1),vector<char>(),DrawMatchesFlags::DEFAULT);
-        // cv::resize(result_img,result_img, Size(result_img.cols/4,result_img.rows/4));
-        // imshow("a", result_img); 
-        
-        // waitKey();
-    //}
-    // namedWindow("a",CV_WINDOW_AUTOSIZE);
+	double dMaxDist = matches[test_idx_l][test_idx_r][0].distance;
+	double dMinDist = matches[test_idx_l][test_idx_r][0].distance;
+	double dDistance;
 
-    // test code
-    // cout << bottom_up::hammingDistance(128,5);
-    //
-    //
+	// 두 개의 keypoint 사이에서 min-max를 계산한다 (min값만 사용)
+	for (int i = 0; i < descriptors[test_idx_l].rows; i++) {
+		dDistance = matches[test_idx_l][test_idx_r][i].distance;
 
+		if (dDistance < dMinDist) dMinDist = dDistance;
+		if (dDistance > dMaxDist) dMaxDist = dDistance;
+	}
+	printf("max_dist : %f \n", dMaxDist);
+	printf("min_dist : %f \n", dMinDist);
 
-    vector<Point2f> domain_features, co_domain_features;
-    
-    Mat homography = findHomography(imgs[3],imgs[4],CV_RANSAC);
-    cout << homography;
+	//match의 distance 값이 작을수록 matching이 잘 된 것
+	//min의 값의 3배 또는 good_matches.size() > 60 까지만 goodmatch로 인정해준다.
+	vector<DMatch>good_matches;
+	int distance = 3;
+	do {
+		vector<DMatch>good_matches2;
+		for (int i = 0; i < descriptors[test_idx_l].rows; i++) {
+			if (matches[test_idx_l][test_idx_r][i].distance < distance * dMinDist)
+				good_matches2.push_back(matches[test_idx_l][test_idx_r][i]);
+		}
+		good_matches = good_matches2;
+		distance -= 1;
+	} while (distance != 2 && good_matches.size() > 2);
+
+    Mat matGoodMatches;
+    drawMatches(imgs[test_idx_l], keypoints[test_idx_l], imgs[test_idx_r], keypoints[test_idx_r], good_matches, matGoodMatches, Scalar::all(-1), Scalar::all(-1), vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+    resize(matGoodMatches,matGoodMatches, Size(matGoodMatches.cols/4,matGoodMatches.rows/4));
+
+    imshow("-1", matGoodMatches );
+    waitKey();
+
+    // cout << matches[test_idx_l][test_idx_r].size();
+    vector<Point2f> pts1, pts2;
+    for(int i = 0; i <good_matches.size(); i++){
+            pts1.push_back(keypoints[test_idx_l][ matches[test_idx_l][test_idx_r][i].queryIdx].pt );
+            pts2.push_back(keypoints[test_idx_r][ matches[test_idx_l][test_idx_r][i].trainIdx].pt );
+    }    
+    Mat homography = findHomography(pts1, pts2, CV_RANSAC,3.,noArray(),10000,0.995);
+    cout << homography << "\n" << homography.size;
     Mat projective_img;
-    warpPerspective(imgs[3],projective_img, homography,Size(imgs[4].cols*2, imgs[4].rows*1.2), INTER_CUBIC);
+
+    warpPerspective(imgs[test_idx_r],projective_img, homography, Size(imgs[test_idx_l].cols*2, imgs[test_idx_l].rows*1.2), INTER_LINEAR);//INTER_CUBIC
     resize(projective_img,projective_img, Size(projective_img.cols/4,projective_img.rows/4));
     imshow("a", projective_img);
+    
+
+    resize(imgs[test_idx_l],imgs[test_idx_l], Size(imgs[test_idx_l].cols/4,imgs[test_idx_l].rows/4));
+    resize(imgs[test_idx_r],imgs[test_idx_r], Size(imgs[test_idx_r].cols/4,imgs[test_idx_r].rows/4));
+    
+    imshow("b", imgs[test_idx_l]);
+    imshow("c", imgs[test_idx_r]);
     waitKey();
 }
