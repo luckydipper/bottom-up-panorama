@@ -10,6 +10,7 @@
 #include <opencv2/core.hpp> // inside type,  Keypoints
 #include <eigen3/Eigen/Core>
 #include "matcher.hpp"
+#include "util.hpp"
 using namespace cv;
 using namespace std;
 
@@ -28,16 +29,16 @@ int main(){
         string index = to_string(i);
         string extension(".jpg");
         string img_path = src + index + extension;
-        cout << img_path; 
+        cout << "loading " <<img_path << "\n"; 
         imgs[i] = imread(img_path, IMREAD_COLOR);
-        assert(imgs[i].data); 
+        assert(imgs[i].data && "image path is not valid."); 
         
         // detect and descript the imgs
         Ptr<FeatureDetector> detector = ORB::create(); // By default make 500 features
         Ptr<DescriptorExtractor> descriptor = ORB::create(); // By default 32 byte per one keypoint. 
         detector->detect(imgs[i],keypoints[i]);
         descriptor->compute(imgs[i],keypoints[i],descriptors[i]); // 256bit, 256 pair of points 256X2 points 32=> 8bit*32 bitmap
-
+        bottom_up::showKeypoints(imgs[i],keypoints[i],0.25);
     }
     //BF Matcher implementation 
     //multimap<int, pair<int,int> > matchs = bottom_up::bruteForceMatcher(descriptors[3],descriptors[4]);
