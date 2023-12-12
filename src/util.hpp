@@ -12,4 +12,5 @@ using namespace std;
 
 namespace bottom_up{ 
 void showKeypoints(const Mat &img, const vector<KeyPoint> &keypoints, const double size_ratio);
+void showResizedImg(const Mat& img, const double size_ratio);
 }

@@ -9,4 +9,11 @@ void showKeypoints(const Mat &img, const vector<KeyPoint> &keypoints ,const doub
     waitKey();
     destroyAllWindows();
 }
+void showResizedImg(const Mat& img, const double size_ratio){
+    Mat result = img;
+    resize(result, result, Size(result.cols * size_ratio, result.rows* size_ratio));
+    imshow("result", result);
+    waitKey();
+    destroyAllWindows();
+}
 } 
