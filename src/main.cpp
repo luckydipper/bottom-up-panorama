@@ -69,7 +69,7 @@ int main(){
     Mat reference_img = imgs[REFERENCE];
     reference_img.copyTo(stitched_img(Rect(ORIGIN_COL, ORIGIN_ROW, IMAGE_WIDTH, IMAGE_HEIGHT)));
 
-
+    //
     for(int i = 1; i <= NUM_IMGS; i++){
         Mat perspectiv_transform;
         perspectiv_transform = homographys[i][REFERENCE]; 
@@ -78,20 +78,26 @@ int main(){
         else if( i > REFERENCE )
             invert(homographys[REFERENCE][i],perspectiv_transform);
 
-        cout << perspectiv_transform;
+        //cout << perspectiv_transform;
         Point2d translated_origin = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).first;
-        Size translated_size = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).second; 
+        Size transform_size = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).second; 
         
-        //pair{translated_origin, translated_size} = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]);
-        cout << translated_origin.x <<" "<< translated_origin.y << " \n" << translated_size << "\n\n"; 
-        //cout << perspectiv_transform; 
+        Mat translation_matrix = Mat::eye(3, 3, CV_64F);
+        translation_matrix.at<double>(0,2) = -translated_origin.x;
+        translation_matrix.at<double>(1,2) = -translated_origin.y;
 
-        //Mat projective_img(Size(stitched_img.cols, stitched_img.rows),CV_8UC3);
+        //cout << translated_origin.x <<" "<< translated_origin.y << " \n" << translated_size << "\n\n"; 
+
+        Mat projective_img(transform_size, CV_8UC3);
         //imgs[i].copyTo(projective_img(Rect(ORIGIN_ROW, ORIGIN_COL, imgs[i].cols, imgs[i].rows)));
 
-        //warpPerspective(projective_img,projective_img, perspectiv_transform, Size(IMAGE_WIDTH*2, IMAGE_HEIGHT*2), INTER_LINEAR);
-        //projective_img.copyTo(stitched_img(Rect(ORIGIN_ROW, ORIGIN_COL, projective_img.cols, projective_img.rows)));
+        // cout << translation_matrix << "\n";
+        warpPerspective(imgs[i], projective_img, translation_matrix*perspectiv_transform, transform_size, INTER_LINEAR);
+
+        projective_img.copyTo(stitched_img(Rect(ORIGIN_COL+ translated_origin.x , ORIGIN_ROW+translated_origin.y , projective_img.cols, projective_img.rows)));
+        bottom_up::showResizedImg(stitched_img, 0.05);
     }
 
-    bottom_up::showResizedImg(stitched_img, 0.05);
+
+
 }
