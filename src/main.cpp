@@ -67,9 +67,10 @@ int main(){
 
     const int REFERENCE = 5;
     Mat reference_img = imgs[REFERENCE];
-    reference_img.copyTo(stitched_img(Rect(ORIGIN_COL, ORIGIN_ROW, IMAGE_WIDTH, IMAGE_HEIGHT)));
+    bottom_up::fillUnoccupiedImage(stitched_img, reference_img, make_pair(ORIGIN_ROW , ORIGIN_COL));
 
-    //
+    bottom_up::showResizedImg(stitched_img, 0.05);
+
     for(int i = 1; i <= NUM_IMGS; i++){
         Mat perspectiv_transform;
         perspectiv_transform = homographys[i][REFERENCE]; 
@@ -78,7 +79,6 @@ int main(){
         else if( i > REFERENCE )
             invert(homographys[REFERENCE][i],perspectiv_transform);
 
-        //cout << perspectiv_transform;
         Point2d translated_origin = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).first;
         Size transform_size = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).second; 
         
@@ -86,18 +86,12 @@ int main(){
         translation_matrix.at<double>(0,2) = -translated_origin.x;
         translation_matrix.at<double>(1,2) = -translated_origin.y;
 
-        //cout << translated_origin.x <<" "<< translated_origin.y << " \n" << translated_size << "\n\n"; 
-
         Mat projective_img(transform_size, CV_8UC3);
-        //imgs[i].copyTo(projective_img(Rect(ORIGIN_ROW, ORIGIN_COL, imgs[i].cols, imgs[i].rows)));
-
-        // cout << translation_matrix << "\n";
         warpPerspective(imgs[i], projective_img, translation_matrix*perspectiv_transform, transform_size, INTER_LINEAR);
 
-        projective_img.copyTo(stitched_img(Rect(ORIGIN_COL+ translated_origin.x , ORIGIN_ROW+translated_origin.y , projective_img.cols, projective_img.rows)));
+        bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x));
+
         bottom_up::showResizedImg(stitched_img, 0.05);
     }
-
-
-
+    imwrite("my_result.jpg", stitched_img);
 }
