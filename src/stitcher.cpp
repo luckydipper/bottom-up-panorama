@@ -15,25 +15,8 @@ namespace bottom_up{
 
 
     // This function only suport double 3d points
-    // TODO : generic programming 
-    vector<Point2d> TransformedPoints(const Mat& perspect_transform, vector<Vec3d> original_points){
-        vector<Point2d> transformedPoints;
-        for(int i = 0; i < original_points.size(); i++){
-            Mat homgeneous_temp = perspect_transform * Mat(original_points[i]);
-            transformedPoints.push_back({homgeneous_temp.at<double>(0)/homgeneous_temp.at<double>(2), homgeneous_temp.at<double>(1)/homgeneous_temp.at<double>(2) } );
-        }
-        return transformedPoints;
-    }
-
-
-    //vector<Point2d> orignal_points_ptr = {Point2d(0,0),         Point2d(img.cols, 0),
-    //                                  Point2d(0, img.rows), Point2d(img.rows, img.cols)};
-    //TODO : is point 2d ABI more reasonalbe?
-    // vector<Point2d> TransformedPoints(const Mat& perspect_transform, vector<Point2d> original_points){
-    //     vector<Vec3d> original_homogeneous;
-    //     for(const auto& o_point : original_points){
-    //         original_homogeneous.push_back({o_point.y, o_point.x});
-    //     }
+    // 
+    // vector<Point2d> getTransformedPoints(const Mat& perspect_transform, vector<Vec3d> original_points){
     //     vector<Point2d> transformedPoints;
     //     for(int i = 0; i < original_points.size(); i++){
     //         Mat homgeneous_temp = perspect_transform * Mat(original_points[i]);
@@ -43,12 +26,28 @@ namespace bottom_up{
     // }
 
 
+    //
+    // TODO : generic programming 
+    vector<Point2d> getTransformedPoints(const Mat& perspect_transform, const vector<Point2d>& original_points){
+        vector<Vec3d> original_homogeneous;
+        for(const auto& o_point : original_points){
+            original_homogeneous.push_back({o_point.y, o_point.x, 1});
+        }
+        vector<Point2d> transformedPoints;
+        for(int i = 0; i < original_points.size(); i++){
+            Mat homgeneous_temp = perspect_transform * Mat(original_homogeneous[i]);
+            transformedPoints.push_back({homgeneous_temp.at<double>(0)/homgeneous_temp.at<double>(2), homgeneous_temp.at<double>(1)/homgeneous_temp.at<double>(2) } );
+        }
+        return transformedPoints;
+    }
+
+
     pair<Point2d,Size> getTranslatedBox(const Mat& perspective_transform, const Mat& img){
         // !!Caution!! Corner points sequance should be 0,0 -> 0,1 -> 1,0 -> 1,1 ex) like drawing the latter "Z"
-        vector<Vec3d> orignal_points = { Vec3d(0, 0, 1),        Vec3d(img.cols, 0, 1),
-                                  Vec3d(0, img.rows, 1), Vec3d(img.cols, img.rows, 1)};
+        vector<Point2d> orignal_points = {Point2d(0,0),         Point2d(img.cols, 0),
+                                              Point2d(0, img.rows), Point2d(img.rows, img.cols)};
 
-        vector<Point2d> transformed_points = TransformedPoints(perspective_transform, orignal_points);
+        vector<Point2d> transformed_points = getTransformedPoints(perspective_transform, orignal_points);
         
         Point2d minPt = transformed_points[0];
         Point2d maxPt = transformed_points[0];
