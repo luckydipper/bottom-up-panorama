@@ -14,77 +14,108 @@ namespace bottom_up{
     // }
 
 
-    // !!Caution!! Corner points sequance should be 0,0 -> 0,1 -> 1,0 -> 1,1 ex) like   
-    // Size getTranslatedSize(const Mat& perspective_transform, const Mat& img){
-    //     vector<Vec3d> corners = { Vec3d(0, 0, 1),        Vec3d(img.cols, 0, 1),
-    //                               Vec3d(0, img.rows, 1), Vec3d(img.cols, img.rows, 1)};
+    // This function only suport double 3d points
+    // TODO : generic programming 
+    vector<Point2d> TransformedPoints(const Mat& perspect_transform, vector<Vec3d> original_points){
+        vector<Point2d> transformedPoints;
+        for(int i = 0; i < original_points.size(); i++){
+            Mat homgeneous_temp = perspect_transform * Mat(original_points[i]);
+            transformedPoints.push_back({homgeneous_temp.at<double>(0)/homgeneous_temp.at<double>(2), homgeneous_temp.at<double>(1)/homgeneous_temp.at<double>(2) } );
+        }
+        return transformedPoints;
+    }
 
-    //     Point2d transformed_coners[4];
-    //     for(int i = 0; i < 4; i++){
-    //         Mat homgeneous_temp = perspective_transform * Mat(corners[i]);
-    //         transformed_coners[i] = {homgeneous_temp.at<double>(0)/homgeneous_temp.at<double>(2), homgeneous_temp.at<double>(1)/homgeneous_temp.at<double>(2) } ;
+
+    //vector<Point2d> orignal_points_ptr = {Point2d(0,0),         Point2d(img.cols, 0),
+    //                                  Point2d(0, img.rows), Point2d(img.rows, img.cols)};
+    //TODO : is point 2d ABI more reasonalbe?
+    // vector<Point2d> TransformedPoints(const Mat& perspect_transform, vector<Point2d> original_points){
+    //     vector<Vec3d> original_homogeneous;
+    //     for(const auto& o_point : original_points){
+    //         original_homogeneous.push_back({o_point.y, o_point.x});
     //     }
-
-    //     Point2d minPt = transformed_coners[0];
-    //     Point2d maxPt = transformed_coners[0];
-    //     for (int i = 1; i < 4; ++i) {
-    //         minPt.x = min(minPt.x, transformed_coners[i].x);
-    //         minPt.y = min(minPt.y, transformed_coners[i].y);
-    //         maxPt.x = max(maxPt.x, transformed_coners[i].x);
-    //         maxPt.y = max(maxPt.y, transformed_coners[i].y);
+    //     vector<Point2d> transformedPoints;
+    //     for(int i = 0; i < original_points.size(); i++){
+    //         Mat homgeneous_temp = perspect_transform * Mat(original_points[i]);
+    //         transformedPoints.push_back({homgeneous_temp.at<double>(0)/homgeneous_temp.at<double>(2), homgeneous_temp.at<double>(1)/homgeneous_temp.at<double>(2) } );
     //     }
-
-    //     return Size(maxPt.x - minPt.x, maxPt.y - minPt.y);
-    // }
-
-    // Point2d getTranslatedOrigin(const Mat& perspective_transform, const Mat& img){
-    //     vector<Vec3d> corners = { Vec3d(0, 0, 1),        Vec3d(img.cols, 0, 1),
-    //                               Vec3d(0, img.rows, 1), Vec3d(img.cols, img.rows, 1)};
-
-    //     Point2d transformed_coners[4];
-    //     for(int i = 0; i < 4; i++){
-    //         Mat homgeneous_temp = perspective_transform * Mat(corners[i]);
-    //         transformed_coners[i] = {homgeneous_temp.at<double>(0)/homgeneous_temp.at<double>(2), homgeneous_temp.at<double>(1)/homgeneous_temp.at<double>(2) } ;
-    //     }
-
-    //     Point2d minPt = transformed_coners[0];
-    //     Point2d maxPt = transformed_coners[0];
-    //     for (int i = 1; i < 4; ++i) {
-    //         minPt.x = min(minPt.x, transformed_coners[i].x);
-    //         minPt.y = min(minPt.y, transformed_coners[i].y);
-    //         maxPt.x = max(maxPt.x, transformed_coners[i].x);
-    //         maxPt.y = max(maxPt.y, transformed_coners[i].y);
-    //     }
-    //     return minPt;
+    //     return transformedPoints;
     // }
 
 
-
-    // !!Caution!! Corner points sequance should be 0,0 -> 0,1 -> 1,0 -> 1,1 ex) like drawing the latter "Z"
     pair<Point2d,Size> getTranslatedBox(const Mat& perspective_transform, const Mat& img){
-        vector<Vec3d> corners = { Vec3d(0, 0, 1),        Vec3d(img.cols, 0, 1),
+        // !!Caution!! Corner points sequance should be 0,0 -> 0,1 -> 1,0 -> 1,1 ex) like drawing the latter "Z"
+        vector<Vec3d> orignal_points = { Vec3d(0, 0, 1),        Vec3d(img.cols, 0, 1),
                                   Vec3d(0, img.rows, 1), Vec3d(img.cols, img.rows, 1)};
 
-        Point2d transformed_coners[4];
-        for(int i = 0; i < 4; i++){
-            Mat homgeneous_temp = perspective_transform * Mat(corners[i]);
-            transformed_coners[i] = {homgeneous_temp.at<double>(0)/homgeneous_temp.at<double>(2), homgeneous_temp.at<double>(1)/homgeneous_temp.at<double>(2) } ;
-        }
+        vector<Point2d> transformed_points = TransformedPoints(perspective_transform, orignal_points);
         
-        Point2d minPt = transformed_coners[0];
-        Point2d maxPt = transformed_coners[0];
+        Point2d minPt = transformed_points[0];
+        Point2d maxPt = transformed_points[0];
         for (int i = 1; i < 4; ++i) {
-            minPt.x = min(minPt.x, transformed_coners[i].x);
-            minPt.y = min(minPt.y, transformed_coners[i].y);
-            maxPt.x = max(maxPt.x, transformed_coners[i].x);
-            maxPt.y = max(maxPt.y, transformed_coners[i].y);
+            minPt.x = min(minPt.x, transformed_points[i].x);
+            minPt.y = min(minPt.y, transformed_points[i].y);
+            maxPt.x = max(maxPt.x, transformed_points[i].x);
+            maxPt.y = max(maxPt.y, transformed_points[i].y);
         }
-
         return {minPt, Size(maxPt.x - minPt.x, maxPt.y - minPt.y)};
     }
 
-    
-    //TODO : should make match class multimap<int, pair<int,int> > 
+    // Mat getHomographyImg(const Mat& img, const Mat& perspective_transform, const Size &size, const Interpolation& inter=Interpolation::linear){
+    //     Mat inv_perspect;
+    //     Mat result(size, CV_8UC3);
+    //     invert(perspective_transform,inv_perspect);
+    //     Point2d transformed_points[4];
+    //  transformed_points   TransformedPoints(perspective_transform, img, transformed_points);
+        
+        
+    //     return ;
+    // }
+
+    // void implFlooding(const Point2d square_points[4], const Mat& inverse_perspective, const int starting_x, const int starting_y, Mat& target, const Interpolation& inter=Interpolation::linear){
+    //     if(starting_x < 0 && starting_y < 0 && starting_x > target.cols && starting_y > target.rows)
+    //         return;
+        
+    //     if( !isInSquare( square_points, Point2d(starting_y, starting_x) ) )
+    //         return;
+        
+    //     for(int channel = 0; channel < 3; channel++)
+    //         if(!target.at<Vec3b>(starting_y,starting_x)[channel]) // channel is not empty
+    //             return;
+        
+
+
+    //     int dy[8] = {-1,  0,  1, -1, 1, -1, 0, 1};
+    //     int dx[8] = {-1, -1, -1,  0, 0,  1, 1, 1};
+
+    // }
+
+    bool isInSquare(const Point2d square_points[4], const Point2d& query_point){
+        for(int i = 0; i < 4; i++)
+            if(!isCounterClock(square_points[i], square_points[(i+1)%4], query_point))
+                return false;
+        return true;
+    }
+
+    bool isCounterClock(const Point2d& origin, const Point2d& img_corner, const Point2d& suspect){
+        // OC
+        double vector_corner_x = img_corner.x - origin.x;
+        double vector_corner_y = img_corner.y - origin.y;
+
+        // OS
+        double vector_suspect_x = suspect.x - origin.x;
+        double vector_suspect_y = suspect.y - origin.y;
+
+        // crossproduct = OS X OC
+        double cross_product = vector_suspect_y * vector_corner_x - vector_suspect_x * vector_corner_y;
+        if(cross_product > 0)
+            return true;
+        else 
+            return false;
+    }
+
+
+    // TODO : should make match class multimap<int, pair<int,int> > 
     // struct matche{
     //     matche(const Mat &descriptor1, const Mat &descriptor2){
              
@@ -95,9 +126,6 @@ namespace bottom_up{
     //find homography
 
     // TODO : add interpolation method
-    enum Interpolate{
-        linear,
-    };
 
 
     // Mat perspectiveTransform(const Mat& origin, const Mat& homography, int rows, int cols, bottom_up::Interpolate interpolate_method = bottom_up::Interpolate::linear){
