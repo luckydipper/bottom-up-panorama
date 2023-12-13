@@ -11,17 +11,18 @@
 #include <eigen3/Eigen/Core>
 #include "matcher.hpp"
 #include "util.hpp"
+#include "stitcher.hpp"
 using namespace cv;
 using namespace std;
 
 
 int main(){
-    // Load ten images 
+    // !!CAUTION!! All object's indexing imgs start with index 1.    
     Mat imgs[11];
     vector<KeyPoint> keypoints[11];
     Mat descriptors[11];
-    
-    for(int i=1; i <= 10; i++){
+    const int NUM_IMGS = 10;
+    for(int i=1; i <= NUM_IMGS; i++){
         // Load imgs
         string src("../imgs/");
         string index = to_string(i);
@@ -38,12 +39,12 @@ int main(){
         descriptor->compute(imgs[i],keypoints[i],descriptors[i]); // 256bit, 256 pair of points 256X2 points 32=> 8bit*32 bitmap
     }
 
-    // upper triangle matrix. ex) [3][3],[3][4]-> ok, [4][3] -> error 
+    // matches and homographys are upper triangle matrix. without diagonose elements ex) [3][4]-> ok, [3][3], [4][3] -> error 
     vector<DMatch> matches[11][11]; 
     Mat homographys[11][11];
     Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming"); //, norm_hamming, DescriptorMatcher::create("BruteForce-Hamming")
-    for(int i = 1; i <= 10; i++){
-        for(int j = i; j <=10; j++){
+    for(int i = 1; i <= NUM_IMGS; i++){
+        for(int j = i+1; j <=NUM_IMGS; j++){
             cout << "match between " << i << " and " << j <<" image.\n";
             matcher->match(descriptors[i],descriptors[j],matches[i][j]);
             vector<Point2i> pts1, pts2;
@@ -51,54 +52,46 @@ int main(){
                 pts1.push_back(keypoints[i][ matches[i][j][k].queryIdx].pt );
                 pts2.push_back(keypoints[j][ matches[i][j][k].trainIdx].pt );
             }
-            //cout << pts1.size() << " " << pts2.size();
             homographys[i][j] = findHomography(pts1, pts2,CV_RANSAC,3.,noArray(),10000,0.995);
             pts1.clear();
             pts2.clear();
         }
     }
+    cout << "Complete matching and homography. \n";
 
-    // homographys
+    const int IMAGE_HEIGHT = imgs[1].rows, IMAGE_WIDTH = imgs[1].cols;
+    const int ORIGIN_ROW = IMAGE_HEIGHT*1, ORIGIN_COL = IMAGE_WIDTH*2;
     
+    // This is Domain img.
+    cv::Mat stitched_img(Size(IMAGE_WIDTH*5, IMAGE_HEIGHT*5), CV_8UC3);
 
-    cout << "complete matching! \n";
-
-    int test_idx_l=9, test_idx_r=10;
-    //matcher->match(descriptors[test_idx_l],descriptors[test_idx_r],matches[test_idx_l][test_idx_r]);
-
-    // vector<Point2i> pts1, pts2;
-    // for(int i = 0; i <matches[test_idx_l][test_idx_r].size(); i++){
-    //         pts1.push_back(keypoints[test_idx_l][ matches[test_idx_l][test_idx_r][i].queryIdx].pt );
-    //         pts2.push_back(keypoints[test_idx_r][ matches[test_idx_l][test_idx_r][i].trainIdx].pt );
-    // }    
-    // Mat homography = findHomography(pts1, pts2, CV_RANSAC,3.,noArray(),10000,0.995);
-    // Mat inv_homography;
-    // cout << homography << "\n" << homography.size;
-    // invert(homography, inv_homography);
-    Mat projective_img;
-    cout << homographys[test_idx_l][test_idx_r];
-
-    warpPerspective(imgs[test_idx_l],projective_img, homographys[test_idx_l][test_idx_r], Size(imgs[test_idx_r].rows*2, imgs[test_idx_r].cols*1.2), INTER_LINEAR);//INTER_CUBIC
-
-    Mat panorama;
-    panorama = projective_img.clone();
-    Mat ROI(panorama, Rect(0,0,imgs[test_idx_l].cols, imgs[test_idx_l].rows));
-    imgs[test_idx_r].copyTo(ROI);
-
-    bottom_up::showResizedImg(panorama,0.25);
-    
-    bottom_up::showResizedImg(projective_img, 0.25);
-    
-    const int IMAGE_ROW_SIZE = imgs[1].rows, IMAGE_COL_SIZE = imgs[1].cols;
-    const int ORIGIN_ROW = IMAGE_ROW_SIZE*2, ORIGIN_COL = IMAGE_COL_SIZE*2;
-
-    cv::Mat stitched_img(Size(imgs[1].rows*5,imgs[1].cols*5),CV_8UC3);
-
-    Mat tmp(stitched_img, Rect(ORIGIN_ROW, ORIGIN_COL, IMAGE_ROW_SIZE, IMAGE_COL_SIZE));
-    projective_img.copyTo(stitched_img);
-
-    //stitched_img.ptr<Vec3d>(ORIGIN_TRANSPOSE.first, ORIGIN_TRANSPOSE.second) = 1 ;
-    bottom_up::showResizedImg(stitched_img,0.1);
+    const int REFERENCE = 5;
+    Mat reference_img = imgs[REFERENCE];
+    reference_img.copyTo(stitched_img(Rect(ORIGIN_COL, ORIGIN_ROW, IMAGE_WIDTH, IMAGE_HEIGHT)));
 
 
+    for(int i = 1; i <= NUM_IMGS; i++){
+        Mat perspectiv_transform;
+        perspectiv_transform = homographys[i][REFERENCE]; 
+        if(i == REFERENCE)
+            continue;
+        else if( i > REFERENCE )
+            invert(homographys[REFERENCE][i],perspectiv_transform);
+
+        cout << perspectiv_transform;
+        Point2d translated_origin = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).first;
+        Size translated_size = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).second; 
+        
+        //pair{translated_origin, translated_size} = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]);
+        cout << translated_origin.x <<" "<< translated_origin.y << " \n" << translated_size << "\n\n"; 
+        //cout << perspectiv_transform; 
+
+        //Mat projective_img(Size(stitched_img.cols, stitched_img.rows),CV_8UC3);
+        //imgs[i].copyTo(projective_img(Rect(ORIGIN_ROW, ORIGIN_COL, imgs[i].cols, imgs[i].rows)));
+
+        //warpPerspective(projective_img,projective_img, perspectiv_transform, Size(IMAGE_WIDTH*2, IMAGE_HEIGHT*2), INTER_LINEAR);
+        //projective_img.copyTo(stitched_img(Rect(ORIGIN_ROW, ORIGIN_COL, projective_img.cols, projective_img.rows)));
+    }
+
+    bottom_up::showResizedImg(stitched_img, 0.05);
 }
