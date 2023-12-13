@@ -17,18 +17,18 @@ int parseCmdArgs(int argc, char** argv);
 
 int main(int argc, char* argv[])
 {
-    vector<Mat> imgs;
-    for(int i=1; i <= 10; i++){
+    vector<Mat> imgs(10);
+    for(int i=0; i <= 9; i++){
         // Load imgs
         string src("../imgs/");
-        string index = to_string(i);
+        string index = to_string(i+1);
         string extension(".jpg");
         string img_path = src + index + extension;
         cout << "loading " <<img_path << "\n"; 
         imgs[i] = imread(img_path, IMREAD_COLOR);
     }
-    int retval = parseCmdArgs(argc, argv);
-    if (retval) return EXIT_FAILURE;
+    //int retval = parseCmdArgs(argc, argv);
+    //if (retval) return EXIT_FAILURE;
 
     //![stitching]
     Mat pano;
@@ -41,9 +41,8 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
     //![stitching]
-
     imwrite(result_name, pano);
-    cout << "stitching completed successfully\n" << result_name << " saved!";
+    //cout << "stitching completed successfully\n" << result_name << " saved!";
     return EXIT_SUCCESS;
 }
 
