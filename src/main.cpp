@@ -32,17 +32,17 @@ int main(){
         assert(imgs[i].data && "image path is not valid."); 
         
         // detect and descript the imgs
-        Ptr<FeatureDetector> detector = SIFT::create(); // By default make 500 features // 1000,1.2,8,31,0,2,ORB::HARRIS_SCORE,31,20
-        Ptr<DescriptorExtractor> descriptor = SIFT::create(); // By default 32 byte per one keypoint. 
+        Ptr<FeatureDetector> detector = ORB::create(); // By default make 500 features // 1000,1.2,8,31,0,2,ORB::HARRIS_SCORE,31,20
+        Ptr<DescriptorExtractor> descriptor = ORB::create(); // By default 32 byte per one keypoint. 
         detector->detect(imgs[i],keypoints[i]);
         descriptor->compute(imgs[i],keypoints[i],descriptors[i]); // 256bit, 256 pair of points 256X2 points 32=> 8bit*32 bitmap
-        bottom_up::showKeypoints(imgs[i],keypoints[i],0.25);
+        // bottom_up::showKeypoints(imgs[i],keypoints[i],0.25);
     }
 
     vector<DMatch> matches[11][11];
-    Ptr<DescriptorMatcher> matcher = BFMatcher::create(NORM_L2); //, norm_hamming, DescriptorMatcher::create("BruteForce-Hamming")
+    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming"); //, norm_hamming, DescriptorMatcher::create("BruteForce-Hamming")
 
-    int test_idx_l=10, test_idx_r=9;
+    int test_idx_l=9, test_idx_r=10;
     matcher->match(descriptors[test_idx_l],descriptors[test_idx_r],matches[test_idx_l][test_idx_r]);
 
     vector<Point2i> pts1, pts2;
@@ -51,10 +51,12 @@ int main(){
             pts2.push_back(keypoints[test_idx_r][ matches[test_idx_l][test_idx_r][i].trainIdx].pt );
     }    
     Mat homography = findHomography(pts1, pts2, CV_RANSAC,3.,noArray(),10000,0.995);
+    Mat inv_homography;
     cout << homography << "\n" << homography.size;
+    invert(homography, inv_homography);
     Mat projective_img;
 
-    warpPerspective(imgs[test_idx_r],projective_img, homography, Size(imgs[test_idx_l].cols*2, imgs[test_idx_l].rows*1.2), INTER_LINEAR);//INTER_CUBIC
+    warpPerspective(imgs[test_idx_r],projective_img, inv_homography, Size(imgs[test_idx_r].cols*2, imgs[test_idx_r].rows*1.2), INTER_LINEAR);//INTER_CUBIC
 
     Mat panorama;
     panorama = projective_img.clone();
