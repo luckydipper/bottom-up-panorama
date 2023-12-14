@@ -23,8 +23,8 @@ namespace bottom_up{
 
     pair<Point2d,Size> getTranslatedBox(const Mat& perspective_transform, const Mat& img){
         // !!Caution!! Corner points sequance should be 0,0 -> 0,1 -> 1,0 -> 1,1 ex) like drawing the latter "Z"
-        vector<Point2d> orignal_points = {Point2d(0,0),         Point2d(img.cols, 0),
-                                          Point2d(0, img.rows), Point2d(img.rows, img.cols)};
+        vector<Point2d> orignal_points = {Point2d(0, 0),        Point2d(0, img.cols),
+                                          Point2d(img.rows, 0), Point2d(img.rows, img.cols)};
 
         vector<Point2d> transformed_points = getTransformedPoints(perspective_transform, orignal_points);
         
