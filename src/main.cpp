@@ -86,15 +86,14 @@ int main(){
         translation_matrix.at<double>(0,2) = -translated_origin.x;
         translation_matrix.at<double>(1,2) = -translated_origin.y;
 
-        Mat projective_img(transform_size, CV_8UC3);
-
-        //bottom_up::getHomographyImg(imgs[i],translation_matrix*perspectiv_transform,transform_size);
-        warpPerspective(imgs[i], projective_img, translation_matrix*perspectiv_transform, transform_size, INTER_LINEAR);
-
+        cout << i << " image Stitching...\n";
+        Mat projective_img = bottom_up::getHomographyImg(imgs[i],translation_matrix*perspectiv_transform);
         bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x));
+        bottom_up::showResizedImg(projective_img,0.1);
+        bottom_up::showResizedImg(stitched_img, 0.1);
 
     }
+    cout << "Image saving..\n";
     imwrite("my_result.jpg", stitched_img);
-    bottom_up::showResizedImg(stitched_img, 0.05);
 
 }

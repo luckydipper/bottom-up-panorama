@@ -13,11 +13,14 @@ namespace bottom_up{
         polar,
     };
     pair<Point2d,Size> getTranslatedBox(const Mat& perspective_transform, const Mat& img);
-    Mat getHomographyImg(const Mat& img, const Mat& perspective_transform, const Size &size);
+    Mat getHomographyImg(const Mat& img, const Mat& perspective_transform);
+    vector<Point2d> getTransformedPoints(const Mat& perspect_transform, const vector<Point2d>& original_points);
+    Point2d getTransformedPoints(const Mat& perspect_transform, const Point2d& original_point);
+    bool isChannelOccupied(const Mat& img, int y, int x);
 
-    void implFlooding(const Point2d square_points[4], const Mat& inverse_perspective, const int starting_x, const int starting_y, const Mat&origin_img,  Mat& target);
-
-    bool isInSquare(const Point2d square_points[4], const Point2d& query_point);
+    
+    void implFlooding(const vector<Point2d>& square_points, const Mat& inverse_perspective, const int starting_y, const int starting_x, const Mat&origin_img,  Mat& target);
+    bool isInSquare(const vector<Point2d>& square_points, const Point2d& query_point);
     bool isCounterClock(const Point2d& origin, const Point2d& img_corner, const Point2d& suspect);
 
 }
