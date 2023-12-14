@@ -10,5 +10,5 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 #SET(CMAKE_CXX_FLAGS "{}")
 add_compile_options("-g")
 
-add_executable(show_img.o src/main.cpp src/matcher.cpp src/util.cpp)
+add_executable(show_img.o src/main.cpp src/matcher.cpp src/util.cpp src/stitcher.cpp)
 target_link_libraries(show_img.o ${OpenCV_LIBS})

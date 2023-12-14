@@ -7,6 +7,7 @@
         "core": "cpp",
         "deque": "cpp",
         "__split_buffer": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "cstdlib": "cpp"
     }
 }
