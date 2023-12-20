@@ -123,68 +123,6 @@ namespace bottom_up{
         }
     }
     
-
-    // TODO : Linear interpolation
-    // void implFlooding(const vector<Point2d>& square_points, const Mat& inverse_perspective, const int starting_y, const int starting_x, const Mat&origin_img,  Mat& target){
-    //     queue<Point2d> q;
-    //     q.push(Point2d(starting_x, starting_y));
-    //     int i = 0;
-    //     while(!q.empty()){
-
-    //         Point2d point_interest = q.front();
-    //         q.pop();
-
-    //         Point2d source_coordinate = getTransformedPoints(inverse_perspective, point_interest);
-            
-    //         double inv_y = source_coordinate.y, inv_x = source_coordinate.x;
-    //         int floor_source_x = (int)inv_x, floor_source_y = (int)inv_y;
-    //         int ceiling_x = floor_source_x+1, ceiling_y = floor_source_y+1;
-    //         //cout << "ceil x " << ceiling_y << "origin col : " << origin_img.rows << "\n"; 
-    //         if(floor_source_y <= 0 || floor_source_x <= 0 || ceiling_x >=  origin_img.cols || ceiling_y >= origin_img.rows)
-    //             continue;
-    //         // Is visited?
-    //         if( !isInSquare(square_points, Point2d(point_interest.x, point_interest.y)) )
-    //             continue;
-    //         if(isChannelOccupied(target, point_interest.y, point_interest.x))
-    //             continue;
-
-
-    //         i++;
-    //         //cout << "target size : " << target.size() << "\n";
-    //         //cout << "original size : " << origin_img.size() << "\n";
-    //         cout <<"i : " << i << "\n";
-    //         cout <<"y :   " << floor_source_y << " x:   " << floor_source_x << "\n";
-    //         //cout <<"t_y : " << point_interest.y <<" t x : " << point_interest.x << "\n";
-    //         cout << target.at<Vec3b>( point_interest.y, point_interest.x) << " \n";
-    //         if(i == 1000000 || i == 2000000 || i == 3000000)
-    //             bottom_up::showResizedImg(target, 0.25);
-            
-    //         // coloring
-    //         for(int channel = 0; channel < 3; channel++){
-    //             if(origin_img.at<Vec3b> (floor_source_y, floor_source_x)[channel] == 0){
-    //                 target.at<Vec3b>(point_interest.y, point_interest.x)[channel]++; 
-    //                 break;   
-    //             }
-    //             //cout <<origin_img.at<Vec3b>(floor_source_y, floor_source_x)[channel]<< " ------ ";
-    //             target.at<Vec3b>(point_interest.y, point_interest.x)[channel]= origin_img.at<Vec3b>(floor_source_y,floor_source_x)[channel];
-    //         }
-    //         cout<<"\n" << target.at<Vec3b>(point_interest.y, point_interest.x ) << "\n";
-            
-    //         int dx[4] = {-1, 0, 0, 1};
-    //         int dy[4] = { 0, -1, 1, 0};
-    //         for(int direction = 0; direction < 4; direction++){
-    //             if(isChannelOccupied(target, point_interest.y+dy[direction], point_interest.x+dx[direction]))
-    //                 continue;
-                
-    //             if( !isInSquare(square_points, Point2d(point_interest.x+dx[direction],point_interest.y+dy[direction]) ))
-    //                 continue;
-                
-    //             q.push(  Point2d(point_interest.x+dx[direction], point_interest.y+dy[direction])  );
-    //         }
-    //         cout << "size : " << q.size() << "\n";
-            
-    //     }
-    // }
     
     bool isChannelOccupied(const Mat& img, int y, int x){
         for(int channel = 0; channel < 3; channel++)
