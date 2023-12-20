@@ -1,5 +1,6 @@
 #include <opencv2/core.hpp>
 #include <algorithm>
+#include <queue>
 #include "util.hpp"
 using namespace cv;
 using namespace std;

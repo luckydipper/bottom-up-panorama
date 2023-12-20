@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <cassert>
+#include <cmath>
 #include <opencv2/highgui/highgui_c.h>
 #include <opencv2/calib3d.hpp> // FindHomography
 #include <opencv2/calib3d/calib3d_c.h> // CV_RANSAC
@@ -12,6 +13,7 @@
 #include "matcher.hpp"
 #include "util.hpp"
 #include "stitcher.hpp"
+#include "optimizer.hpp"
 using namespace cv;
 using namespace std;
 
@@ -59,6 +61,30 @@ int main(){
     }
     cout << "Complete matching and homography. \n";
 
+    //Mat rotation_matrix = bottom_up::getRotationMatrix(0,0,M_PI/2);
+    //Mat result = rotation_matrix* (Mat_<double>(3,1) << 1.,1.,1.);
+    //cout << rotation_matrix << "\n" << result << "\n\n";
+
+    // Mat tranpose_rot_mat, invert_intrinsic;
+    // transpose(bottom_up::getRotationMatrix(0, 0, 1), tranpose_rot_mat);
+    // invert(bottom_up::getIntrinsicMatrix(12), invert_intrinsic);
+    // Mat perspective_transform = bottom_up::getIntrinsicMatrix(12) * bottom_up::getRotationMatrix(0, 0, 1) * tranpose_rot_mat * invert_intrinsic;
+    
+    // cout << bottom_up::getRotationMatrix(0, 0, 1) * tranpose_rot_mat;
+    // Point2d translated_origin = bottom_up::getTranslatedBox(perspective_transform, imgs[1]).first;
+    // Size transform_size = bottom_up::getTranslatedBox(perspective_transform, imgs[1]).second; 
+        
+    // Mat translation_matrix = Mat::eye(3, 3, CV_64F);
+    // translation_matrix.at<double>(0,2) = -translated_origin.x;
+    // translation_matrix.at<double>(1,2) = -translated_origin.y;
+    // //cout << translated_origin << "\n" << transform_size;
+    // cout << translation_matrix*perspective_transform;
+    // bottom_up::showResizedImg(imgs[1], 0.1);
+    // Mat projective_img = bottom_up::getHomographyImg(imgs[1], translation_matrix*perspective_transform);
+    // bottom_up::showResizedImg(projective_img,0.1);
+    // return 1;
+
+    ///////////////////////////////////////////////////////////////////////////////////////
     const int IMAGE_HEIGHT = imgs[1].rows, IMAGE_WIDTH = imgs[1].cols;
     const int ORIGIN_ROW = IMAGE_HEIGHT*1, ORIGIN_COL = IMAGE_WIDTH*2;
     
