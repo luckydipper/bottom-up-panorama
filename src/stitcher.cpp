@@ -9,18 +9,14 @@ namespace bottom_up{
     // TODO : generic programming 
     vector<Point2d> getTransformedPoints(const Mat& perspect_transform, const vector<Point2d>& original_points){
         vector<Vec3d> original_homogeneous;
-        cout << "perspective _transform are \n" << perspect_transform <<"\n\n";
 
-        for(const auto& o_point : original_points){
+        for(const auto& o_point : original_points)
             original_homogeneous.push_back({o_point.x, o_point.y, 1.});
-            cout << o_point <<" ";
-        }
-        cout << "\n\n";
+        
         vector<Point2d> transformedPoints;
         for(int i = 0; i < original_points.size(); i++){
             Mat homgeneous_tmp = perspect_transform * Mat(original_homogeneous[i]);
             transformedPoints.push_back({homgeneous_tmp.at<double>(0)/homgeneous_tmp.at<double>(2), homgeneous_tmp.at<double>(1)/homgeneous_tmp.at<double>(2) } );
-            cout << Point2d{homgeneous_tmp.at<double>(0)/homgeneous_tmp.at<double>(2), homgeneous_tmp.at<double>(1)/homgeneous_tmp.at<double>(2) } << " ";
         }
         return transformedPoints;
     }
@@ -60,14 +56,9 @@ namespace bottom_up{
 
         vector<Point2d> counter_clock_origin_corners = {Point2d(0, 0), Point2d(0, origin_img.rows), Point2d(origin_img.cols, origin_img.rows), Point2d(origin_img.cols, 0)};
         vector<Point2d> transformed_points = getTransformedPoints(perspective_transform, counter_clock_origin_corners);
-        // for(auto a : counter_clock_origin_corners)
-        //     cout << a << "\n";
-        // cout <<" - \n";
-        // for(auto a : transformed_points)
-        //     cout << a << "\n";
+
         Point2d perspective_mid = getTransformedPoints(perspective_transform, Point2d(origin_img.cols/2,origin_img.rows/2) );
 
-        // cout << perspective_mid << "\n";        
         implFlooding(transformed_points, inv_perspect, (int)perspective_mid.y, (int)perspective_mid.x, origin_img, result);
         return result;
     }
@@ -87,34 +78,11 @@ namespace bottom_up{
         target.at<Vec3b>(starting_y,starting_x) = origin_img.at<Vec3b>(floor_y, floor_x);
         if(origin_img.at<Vec3b> (floor_y,floor_x)[0] == 0)
             target.at<Vec3b>(starting_y, starting_x)[0]++; 
-        //int i;
-        //i++;
-        //cout << i <<"--"<< starting_y<<"---" << starting_y << "-----\n";
-        //cout << i <<"\n";
-        // cout << i <<"--"<< starting_y<<"---" << starting_x << "-----\n";
-        // cout << target.at<Vec3b>(starting_y, starting_x) <<"\n"; 
-        // cout << origin_img.at<Vec3b> (floor_y,floor_x) << "\n";
-        // if(i == 5000000||i == 10000000|| i == 20000000 || i == 30000000)
-        //     bottom_up::showResizedImg(target, 0.25);
-            //cout << target.at<Vec3d> (3000, 2000) << "\n";
-        
-        //cout << getTransformedPoints(inverse_perspective, Point2d(1449, 1449)) << "\n";
-        //cout << origin_img.at<Vec3d> (getTransformedPoints(inverse_perspective, Point2d(1449, 1449)).x, getTransformedPoints(inverse_perspective, Point2d(1449, 1449)).y) << "---------\n";
-
         int dy[8] = {-1,-1,-1, 0, 0, 1, 1, 1};
         int dx[8] = {-1, 0, 1, -1, 1, -1, 0, 1, };
 
         for(int direction = 0; direction < 8; direction++){
-            // if(starting_y+dy[direction] == 2000 && starting_x+dx[direction] ==3024){
-            //     if(isChannelOccupied(target, starting_y+dy[direction], starting_x+dx[direction]))
-            //         cout << 111111111111;        
-            //     for(auto a : square_points)
-            //         cout << a << " ";
-            //     if( !isInSquare( square_points, Point2d(starting_y+dy[direction], starting_x+dx[direction]) ) )
-            //         cout << 22222222222222;
-            //     cout <<"33333333333";
-            //     bottom_up::showResizedImg(target,0.5);
-            // }
+
             if(isChannelOccupied(target, starting_y+dy[direction], starting_x+dx[direction]))
                 continue;
             if( !isInSquare( square_points, Point2d(starting_x+dx[direction],starting_y+dy[direction]) ) ) // HERE
@@ -135,7 +103,6 @@ namespace bottom_up{
 
         for(int here = 0; here < counter_clockwise_corner.size(); here++){
             int there = (here + 1)%counter_clockwise_corner.size();
-            //cout << counter_clockwise_corner[here] << " " <<  counter_clockwise_corner[there] << " " << query_point << "\n";
             if(!isCounterClock(counter_clockwise_corner[here], counter_clockwise_corner[there], query_point))
                 return false;
         }
