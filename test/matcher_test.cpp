@@ -15,3 +15,8 @@
     // cout << bottom_up::hammingDistance(128,5);
     //
     //
+
+
+    // Mat rotation_matrix = bottom_up::getRotationMatrix(0,0,M_PI/2);
+    // Mat result = rotation_matrix* (Mat_<double>(3,1) << 1.,1.,1.);
+    // cout << rotation_matrix << "\n" << result << "\n\n";

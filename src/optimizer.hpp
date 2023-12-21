@@ -1,5 +1,7 @@
 #include <opencv2/core.hpp>
 #include <cmath>
+#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/SVD>
 using namespace std;
 using namespace cv;
 
