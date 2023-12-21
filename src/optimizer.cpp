@@ -1,4 +1,6 @@
 #include "optimizer.hpp"
+#define _XOPEN_SOURCE 700 // to do this.
+
 using namespace std;
 using namespace cv;
 
@@ -48,15 +50,18 @@ Mat getRotationMatrix(double theta1, double theta2, double theta3){
     return rotationMatrix;
 }
 
-cv::Mat computeHomographyDLT(const std::vector<cv::Point2f>& srcPoints, 
-                             const std::vector<cv::Point2f>& dstPoints) {
-    assert(srcPoints.size() == dstPoints.size() && srcPoints.size() >= 4);
+cv::Mat computeHomographyDLT(const std::vector<cv::KeyPoint>& source, 
+                             const std::vector<cv::KeyPoint>& destination,
+                             const vector<bottom_up::FeatureMapping>& matches) {
+    
+    assert(source.size() == destination.size() && matches.size() >= 4);
 
     // Construct matrix A
-    Eigen::MatrixXd A(2 * srcPoints.size(), 9);
-    for (size_t i = 0; i < srcPoints.size(); ++i) {
-        double x = srcPoints[i].x, y = srcPoints[i].y;
-        double u = dstPoints[i].x, v = dstPoints[i].y;
+    Eigen::MatrixXd A(2 * matches.size(), 9);
+    for(int i = 0; i < matches.size(); ++i){
+        Point2d src_point = source[matches[i].here].pt, dst_point = destination[matches[i].there].pt;
+        double x = src_point.x, y = src_point.y;
+        double u = dst_point.x, v = dst_point.y;
 
         A(2*i, 0) = -x;
         A(2*i, 1) = -y;
@@ -77,6 +82,7 @@ cv::Mat computeHomographyDLT(const std::vector<cv::Point2f>& srcPoints,
         A(2*i+1, 6) = x * v;
         A(2*i+1, 7) = y * v;
         A(2*i+1, 8) = v;
+
     }
 
     // Compute SVD of A
@@ -87,7 +93,7 @@ cv::Mat computeHomographyDLT(const std::vector<cv::Point2f>& srcPoints,
     cv::Mat H = cv::Mat::zeros(3, 3, CV_64F);
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
-            H.at<double>(i, j) = h(i * 3 + j);
+            H.at<double>(i, j) = h(i * 3 + j) / h(8);
         }
     }
 

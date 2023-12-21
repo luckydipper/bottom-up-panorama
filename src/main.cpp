@@ -61,7 +61,9 @@ int main(){
     }
     cout << "Complete matching and homography. \n";
 
-
+    vector<bottom_up::FeatureMapping> matches_bottom_up = bottom_up::orbFeatureMatch(descriptors[1],descriptors[2]);
+    Mat homo_1 = bottom_up::computeHomographyDLT(keypoints[1],keypoints[2],matches_bottom_up);
+    cout << homo_1;
 
     ///////////////////////////////////////////////////////////////////////////////////////
     const int IMAGE_HEIGHT = imgs[1].rows, IMAGE_WIDTH = imgs[1].cols;
