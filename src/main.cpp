@@ -20,6 +20,7 @@ using namespace std;
 
 int main(){
     // !!CAUTION!! All object's indexing imgs start with index 1.    
+    // !!CAUTION!! If segment fault error are occured, type "ulimit -s unlimited" in your shell. FloodFill algorithm with DFS has heavy overhead
     Mat imgs[11];
     vector<KeyPoint> keypoints[11];
     Mat descriptors[11];
@@ -33,7 +34,7 @@ int main(){
         cout << "loading " <<img_path << "\n"; 
         imgs[i] = imread(img_path, IMREAD_COLOR);
         assert(imgs[i].data && "image path is not valid."); 
-        
+    
         // detect and descript the imgs
         Ptr<FeatureDetector> detector = ORB::create(); // By default make 500 features // 1000,1.2,8,31,0,2,ORB::HARRIS_SCORE,31,20
         Ptr<DescriptorExtractor> descriptor = ORB::create(); // By default 32 byte per one keypoint. 
@@ -61,9 +62,33 @@ int main(){
     }
     cout << "Complete matching and homography. \n";
 
-    vector<bottom_up::FeatureMapping> matches_bottom_up = bottom_up::orbFeatureMatch(descriptors[1],descriptors[2]);
-    Mat homo_1 = bottom_up::computeHomographyDLT(keypoints[1],keypoints[2],matches_bottom_up);
-    cout << homo_1;
+    vector<bottom_up::FeatureMapping> bottom_up_matches[11][11];
+    Mat bottom_up_homographys[11][11];
+
+    for(int i = 1; i <= NUM_IMGS; i++){
+        for(int j = i+1; j <=NUM_IMGS; j++){
+            cout << "Bottom up Brute Force match between " << i << " and " << j <<" image.\n";
+            bottom_up_matches[i][j] = bottom_up::orbFeatureMatch(descriptors[i],descriptors[j]);
+            
+            //sorting by hamming distance
+            sort(bottom_up_matches[i][j].begin(), bottom_up_matches[i][j].end());
+
+            // pick top 50 features.
+            vector<bottom_up::FeatureMapping> top_50_matche(bottom_up_matches[i][j].begin(), bottom_up_matches[i][j].begin()+7);
+            bottom_up_homographys[i][j] =  bottom_up::computeHomographyDLT(keypoints[i], keypoints[j], top_50_matche);
+            cout << bottom_up_homographys[i][j] << "\n";
+            Mat result_img;
+            vector<DMatch> matchs_;
+
+            for(const bottom_up::FeatureMapping& m : top_50_matche)
+                matchs_.push_back(DMatch(m.here, m.there, m.distance) );
+            
+            drawMatches(imgs[i],keypoints[i],imgs[j],keypoints[j],matchs_ ,result_img, Scalar::all(-1),Scalar::all(-1),vector<char>(),DrawMatchesFlags::DEFAULT);
+            bottom_up::showResizedImg(result_img,0.2);
+            matchs_.clear();
+        }
+    }    
+
 
     ///////////////////////////////////////////////////////////////////////////////////////
     const int IMAGE_HEIGHT = imgs[1].rows, IMAGE_WIDTH = imgs[1].cols;
@@ -95,6 +120,7 @@ int main(){
 
         cout << i << " image Stitching...\n";
         Mat projective_img = bottom_up::getHomographyImg(imgs[i],translation_matrix*perspectiv_transform);
+        ////TODO : If i use bottomup homography matrix, abort error happen.
         bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x));
         bottom_up::showResizedImg(projective_img,0.1);
         bottom_up::showResizedImg(stitched_img, 0.1);

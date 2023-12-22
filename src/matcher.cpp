@@ -22,8 +22,8 @@ namespace bottom_up{
             for(int j = 0; j < num_features; j++){
                 int distance=0;
                 for(int bit_seq = 0; bit_seq < descriptor1.cols; bit_seq++){
-                    uchar batch1 = descriptor1.at<int>(i,bit_seq);
-                    uchar batch2 = descriptor2.at<int>(j,bit_seq);
+                    uchar batch1 = descriptor1.at<uchar>(i,bit_seq);
+                    uchar batch2 = descriptor2.at<uchar>(j,bit_seq);
                     distance += hammingDistance(batch1, batch2);
                 }
                 result_match.insert({distance, {i,j}});

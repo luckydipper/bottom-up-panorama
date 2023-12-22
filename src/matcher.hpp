@@ -1,9 +1,10 @@
 
 #ifndef mathcer_bottom_up_implimentation 
-    #define mathcer_bottom_up_implimentation
-    #include <map>
-    #include <cassert>
-    #include <opencv2/core.hpp> // inside type,  Keypoints
+#define mathcer_bottom_up_implimentation
+#include <map>
+#include <cassert>
+#include <algorithm>
+#include <opencv2/core.hpp> // inside type,  Keypoints
 
 using namespace std;
 using namespace cv;
@@ -14,6 +15,11 @@ namespace bottom_up{
 
     struct FeatureMapping{
         FeatureMapping(int here, int there, double distance):here(here), there(there), distance(distance){;}
+        bool operator<(const FeatureMapping& m1) const {
+            if(this->distance < m1.distance)
+                return true;
+            return false;
+        }
         int here, there;
         double distance;
     };
