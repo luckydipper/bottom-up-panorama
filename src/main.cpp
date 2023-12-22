@@ -62,33 +62,23 @@ int main(){
     }
     cout << "Complete matching and homography. \n";
 
-    vector<bottom_up::FeatureMapping> bottom_up_matches[11][11];
+    vector<bottom_up::FeatureMapping> good_matches[11][11];
     Mat bottom_up_homographys[11][11];
 
     for(int i = 1; i <= NUM_IMGS; i++){
         for(int j = i+1; j <=NUM_IMGS; j++){
             cout << "Bottom up Brute Force match between " << i << " and " << j <<" image.\n";
-            bottom_up_matches[i][j] = bottom_up::orbFeatureMatch(descriptors[i],descriptors[j]);
+            good_matches[i][j] = bottom_up::orbFeatureMatch(descriptors[i],descriptors[j]);
             
             //sorting by hamming distance
-            sort(bottom_up_matches[i][j].begin(), bottom_up_matches[i][j].end());
+            sort(good_matches[i][j].begin(), good_matches[i][j].end());
 
-            // pick top 50 features.
-            vector<bottom_up::FeatureMapping> top_50_matche(bottom_up_matches[i][j].begin(), bottom_up_matches[i][j].begin()+7);
+            // pick top 500 features.
+            vector<bottom_up::FeatureMapping> top_50_matche(good_matches[i][j].begin(), good_matches[i][j].begin()+500);// 500!
+            good_matches[i][j] = top_50_matche;
             bottom_up_homographys[i][j] =  bottom_up::computeHomographyDLT(keypoints[i], keypoints[j], top_50_matche);
-            cout << bottom_up_homographys[i][j] << "\n";
-            Mat result_img;
-            vector<DMatch> matchs_;
-
-            for(const bottom_up::FeatureMapping& m : top_50_matche)
-                matchs_.push_back(DMatch(m.here, m.there, m.distance) );
-            
-            drawMatches(imgs[i],keypoints[i],imgs[j],keypoints[j],matchs_ ,result_img, Scalar::all(-1),Scalar::all(-1),vector<char>(),DrawMatchesFlags::DEFAULT);
-            bottom_up::showResizedImg(result_img,0.2);
-            matchs_.clear();
         }
     }    
-
 
     ///////////////////////////////////////////////////////////////////////////////////////
     const int IMAGE_HEIGHT = imgs[1].rows, IMAGE_WIDTH = imgs[1].cols;
