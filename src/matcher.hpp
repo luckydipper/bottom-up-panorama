@@ -14,14 +14,14 @@ namespace bottom_up{
     
 
     struct FeatureMapping{
-        FeatureMapping(int here, int there, double distance):here(here), there(there), distance(distance){;}
+        FeatureMapping(int here, int there, int distance):here(here), there(there), distance(distance){;}
         bool operator<(const FeatureMapping& m1) const {
             if(this->distance < m1.distance)
                 return true;
             return false;
         }
         int here, there;
-        double distance;
+        int distance;
     };
 
 
