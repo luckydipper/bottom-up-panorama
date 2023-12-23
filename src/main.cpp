@@ -97,28 +97,45 @@ int main(){
 
     bottom_up::showResizedImg(stitched_img, 0.05);
 
-    for(int i = 1; i <= NUM_IMGS; i++){
-        Mat perspectiv_transform;
-        perspectiv_transform = bottom_up_homographys[i][REFERENCE]; 
-        if(i == REFERENCE)
-            continue;
-        else if( i > REFERENCE )
-            invert(bottom_up_homographys[REFERENCE][i],perspectiv_transform);
+    // for(int i = 1; i <= NUM_IMGS; i++){
+    //     Mat perspectiv_transform;
+    //     perspectiv_transform = bottom_up_homographys[i][REFERENCE]; 
+    //     if(i == REFERENCE)
+    //         continue;
+    //     else if( i > REFERENCE )
+    //         invert(bottom_up_homographys[REFERENCE][i],perspectiv_transform);
 
-        Point2d translated_origin = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).first;
-        Size transform_size = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).second; 
-        Mat translation_matrix = Mat::eye(3, 3, CV_64F);
-        translation_matrix.at<double>(0,2) = -translated_origin.x;
-        translation_matrix.at<double>(1,2) = -translated_origin.y;
+    //     Point2d translated_origin = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).first;
+    //     Size transform_size = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).second; 
+    //     Mat translation_matrix = Mat::eye(3, 3, CV_64F);
+    //     translation_matrix.at<double>(0,2) = -translated_origin.x;
+    //     translation_matrix.at<double>(1,2) = -translated_origin.y;
 
-        cout << i << " image Stitching...\n";
-        Mat projective_img = bottom_up::getHomographyImg(imgs[i],translation_matrix*perspectiv_transform);
-        ////TODO : If i use bottomup homography matrix, abort error happen.
-        bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x));
+    //     cout << i << " image Stitching...\n";
+    //     Mat projective_img = bottom_up::getHomographyImg(imgs[i],translation_matrix*perspectiv_transform);
+    //     ////TODO : If i use bottomup homography matrix, abort error happen.
+    //     bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x));
 
-        bottom_up::showResizedImg(projective_img,1);
-        //bottom_up::showResizedImg(stitched_img, 1);
-    }
+    //     bottom_up::showResizedImg(projective_img,1);
+    //     //bottom_up::showResizedImg(stitched_img, 1);
+    // }
+
+    Mat r1 = bottom_up::getRotationMatrix(0,0,M_PI);
+    Mat r2 = bottom_up::getRotationMatrix(0,0,M_PI/9);
+    Mat f1 = bottom_up::getIntrinsicMatrix(12);
+    Mat inv_f1, r2_t;
+    invert(f1,inv_f1);
+    transpose(r2,r2_t);
+    Mat perspectiv_transform = f1 * r1 * r2_t * inv_f1; 
+    cout << perspectiv_transform;
+    Point2d translated_origin = bottom_up::getTranslatedBox(perspectiv_transform, imgs[1]).first;
+    Size transform_size = bottom_up::getTranslatedBox(perspectiv_transform, imgs[1]).second; 
+    Mat translation_matrix = Mat::eye(3, 3, CV_64F);
+    translation_matrix.at<double>(0,2) = -translated_origin.x;
+    translation_matrix.at<double>(1,2) = -translated_origin.y;
+    Mat projective_img = bottom_up::getHomographyImg(imgs[1],translation_matrix*perspectiv_transform);
+    bottom_up::showResizedImg(projective_img, 0.5);
+
     cout << "Image saving..\n";
     imwrite("my_result.jpg", stitched_img);
 
