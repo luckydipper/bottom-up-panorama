@@ -116,7 +116,7 @@ int main(){
         ////TODO : If i use bottomup homography matrix, abort error happen.
         bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x));
 
-        //bottom_up::showResizedImg(projective_img,1);
+        bottom_up::showResizedImg(projective_img,1);
         //bottom_up::showResizedImg(stitched_img, 1);
     }
     cout << "Image saving..\n";
