@@ -1,3 +1,5 @@
+#ifndef ___stitcher___
+#define ___stitcher___
 #include <opencv2/core.hpp>
 #include <algorithm>
 #include <queue>
@@ -25,3 +27,4 @@ namespace bottom_up{
     bool isCounterClock(const Point2d& origin, const Point2d& img_corner, const Point2d& suspect);
 
 }
+#endif
