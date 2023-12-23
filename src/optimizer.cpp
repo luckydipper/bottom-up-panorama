@@ -110,13 +110,13 @@ cv::Mat computeHomographyGaussNewton(const std::vector<cv::KeyPoint>& source,
 
     int ITERATION = 100, SAMPLE_SIZE = 6, EUCLIDIAN_THRESHOLD = 3;
     
-
+ 
     Mat result_homography;
     
     int max_inlier =-999999999;// -INF
     while(max_inlier <= 5){
         //RANSAC 
-        vector<bottom_up::FeatureMapping> interesting_match = sampleArbitaryPoints(matches, SAMPLE_SIZE);
+        vector<bottom_up::FeatureMapping> interesting_match = sampleArbitaryMatches(matches, SAMPLE_SIZE);
 
         // Jacobian 
         Eigen::MatrixXd A(2 * interesting_match.size(), 9);
@@ -170,7 +170,7 @@ cv::Mat computeHomographyGaussNewton(const std::vector<cv::KeyPoint>& source,
         }
         interesting_match.clear(); 
     }
-    //vector<bottom_up::FeatureMapping> interesting_match = sampleArbitaryPoints(matches, SAMPLE_SIZE);
+    //vector<bottom_up::FeatureMapping> interesting_match = sampleArbitaryMatches(matches, SAMPLE_SIZE);
 
     return result_homography;
 }
@@ -195,7 +195,7 @@ int countInlier(vector<KeyPoint> queries, vector<KeyPoint> ground_truthes, Mat h
 }
 
 
-vector<bottom_up::FeatureMapping> sampleArbitaryPoints(const vector<bottom_up::FeatureMapping>& matches, int sample_size){
+vector<bottom_up::FeatureMapping> sampleArbitaryMatches(const vector<bottom_up::FeatureMapping>& matches, int sample_size){
     random_device seed;
     mt19937 gen(seed());
     uniform_int_distribution<> dist(0, matches.size());

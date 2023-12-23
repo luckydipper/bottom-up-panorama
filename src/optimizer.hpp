@@ -28,7 +28,7 @@ cv::Mat computeHomographyGaussNewton(const std::vector<cv::KeyPoint>& source,
 int countInlier(vector<KeyPoint> queries, vector<KeyPoint> ground_truthes, Mat homography, double threshold);
 Eigen::MatrixXd cvMatToEigen(const cv::Mat &cvMat);
 Point2d applyHomography(const Eigen::MatrixXd &H, const Point2d &pt);
-vector<bottom_up::FeatureMapping> sampleArbitaryPoints(const vector<bottom_up::FeatureMapping>& matches, int sample_size);
+vector<bottom_up::FeatureMapping> sampleArbitaryMatches(const vector<bottom_up::FeatureMapping>& matches, int sample_size);
 Eigen::MatrixXd computeJacobian(const Point2d &srcPt, const Eigen::MatrixXd &H);
 Eigen::MatrixXd refineHomographyGaussNewton(const vector<Point2d> &srcPoints, const vector<Point2d> &dstPoints, const Eigen::MatrixXd &initialHomography, int maxIterations);
 
