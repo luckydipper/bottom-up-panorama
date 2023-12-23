@@ -41,7 +41,6 @@ int main(){
         detector->detect(imgs[i],keypoints[i]);
         descriptor->compute(imgs[i],keypoints[i],descriptors[i]); // 256bit, 256 pair of points 256X2 points 32=> 8bit*32 bitmap
     }
-
     // matches and homographys are upper triangle matrix. without diagonose elements ex) [3][4]-> ok, [3][3], [4][3] -> error 
     vector<DMatch> matches[11][11]; 
     Mat homographys[11][11];
@@ -77,8 +76,13 @@ int main(){
             vector<bottom_up::FeatureMapping> top_50_matche(good_matches[i][j].begin(), good_matches[i][j].begin()+500);// 500!
             good_matches[i][j] = top_50_matche;
             bottom_up_homographys[i][j] =  bottom_up::computeHomographyDLT(keypoints[i], keypoints[j], top_50_matche);
+            //Mat initial_homography = computeHomographyGaussNewton(keypoints[i], keypoints[j], good_matches[i][j], bottom_up_homographys[i][j]);
+            //cout <<i <<" -> " <<j << " " << initial_homography << "\n";
+            cout <<i <<" -> " <<j << " " << bottom_up_homographys[i][j] << "\n";
         }
     }    
+
+
 
     ///////////////////////////////////////////////////////////////////////////////////////
     const int IMAGE_HEIGHT = imgs[1].rows, IMAGE_WIDTH = imgs[1].cols;
@@ -95,15 +99,14 @@ int main(){
 
     for(int i = 1; i <= NUM_IMGS; i++){
         Mat perspectiv_transform;
-        perspectiv_transform = homographys[i][REFERENCE]; 
+        perspectiv_transform = bottom_up_homographys[i][REFERENCE]; 
         if(i == REFERENCE)
             continue;
         else if( i > REFERENCE )
-            invert(homographys[REFERENCE][i],perspectiv_transform);
+            invert(bottom_up_homographys[REFERENCE][i],perspectiv_transform);
 
         Point2d translated_origin = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).first;
         Size transform_size = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).second; 
-        
         Mat translation_matrix = Mat::eye(3, 3, CV_64F);
         translation_matrix.at<double>(0,2) = -translated_origin.x;
         translation_matrix.at<double>(1,2) = -translated_origin.y;
@@ -112,9 +115,9 @@ int main(){
         Mat projective_img = bottom_up::getHomographyImg(imgs[i],translation_matrix*perspectiv_transform);
         ////TODO : If i use bottomup homography matrix, abort error happen.
         bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x));
-        bottom_up::showResizedImg(projective_img,0.1);
-        bottom_up::showResizedImg(stitched_img, 0.1);
 
+        //bottom_up::showResizedImg(projective_img,1);
+        //bottom_up::showResizedImg(stitched_img, 1);
     }
     cout << "Image saving..\n";
     imwrite("my_result.jpg", stitched_img);
