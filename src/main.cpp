@@ -17,13 +17,13 @@
 using namespace cv;
 using namespace std;
 
+Mat imgs[11];
+vector<KeyPoint> keypoints[11];
+Mat descriptors[11];
 
 int main(){
     // !!CAUTION!! All object's indexing imgs start with index 1.    
     // !!CAUTION!! If segment fault error are occured, type "ulimit -s unlimited" in your shell. FloodFill algorithm with DFS has heavy overhead
-    Mat imgs[11];
-    vector<KeyPoint> keypoints[11];
-    Mat descriptors[11];
     const int NUM_IMGS = 10;
     for(int i=1; i <= NUM_IMGS; i++){
         // Load imgs
@@ -79,7 +79,10 @@ int main(){
             //cout <<i <<" -> " <<j << " " << initial_homography << "\n";
             //bottom_up_homographys[i][j] = bottom_up::computeHomographyDLT(keypoints[i], keypoints[j], top_500_matche);
             //bottom_up::ransacHomographyGN(keypoints[i], keypoints[j], top_500_matche, bottom_up_homographys[i][j], 100);
-            bottom_up_homographys[i][j]  = bottom_up::getInitialHomographyRANSAC(keypoints[i], keypoints[j], top_500_matche,400);
+            //vector<bottom_up::FeatureMapping> match_gt;
+
+            int num_interation = 1000;
+            bottom_up_homographys[i][j]  = bottom_up::getInitialHomographyRANSAC(keypoints[i], keypoints[j], good_matches[i][j], num_interation);
             cout <<i <<" -> " <<j << "\n" << bottom_up_homographys[i][j] << "\n";
         }
     }    
@@ -107,6 +110,7 @@ int main(){
         else if( i > REFERENCE )
             invert(bottom_up_homographys[REFERENCE][i],perspectiv_transform);
 
+        //perspectiv_transform = (Mat_<double>(3,3) << 1.11673615e+00, -7.17904939e-02, -1.03418243e+03, 9.13088818e-02,  1.02092184e+00, -1.48211942e+02, 6.31173358e-05,-3.50995542e-05, 1.00000000e+00);
         Point2d translated_origin = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).first;
         Size transform_size = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).second; 
         Mat translation_matrix = Mat::eye(3, 3, CV_64F);
@@ -116,11 +120,11 @@ int main(){
         cout << i << " image Stitching...\n";
         Mat projective_img = bottom_up::getHomographyImg(imgs[i],translation_matrix*perspectiv_transform);
         ////TODO : If i use bottomup homography matrix, abort error happen.
-        //bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x));
+        bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x));
         //cout << stitched_img.size() << " :  stitched_img size. \n";
         cout << projective_img.size() << " :  projective size. \n";
-        bottom_up::showResizedImg(projective_img,1);
-        //bottom_up::showResizedImg(stitched_img, 1);
+        bottom_up::showResizedImg(projective_img,0.5);
+        bottom_up::showResizedImg(stitched_img, 0.1);
     }
 
 
