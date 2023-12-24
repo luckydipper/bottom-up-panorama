@@ -57,14 +57,13 @@ cv::Mat computeHomographyDLT(const std::vector<cv::KeyPoint>& source,
                                      const vector<bottom_up::FeatureMapping>& matches ) {
     
 
-    int ITERATION = 100, SAMPLE_SIZE = 4;
-    double EUCLIDIAN_THRESHOLD = 1.;
-    
+    int SAMPLE_SIZE = 6;
+    double EUCLIDIAN_THRESHOLD = 2.;
  
     Mat result_homography;
     
     int max_inlier =-999999999;// -INF
-    while(max_inlier < 4){
+    while(max_inlier < 6){
         //RANSAC 
         vector<bottom_up::FeatureMapping> interesting_match = sampleArbitaryMatches(matches, SAMPLE_SIZE);
 
@@ -118,10 +117,88 @@ cv::Mat computeHomographyDLT(const std::vector<cv::KeyPoint>& source,
         }
         interesting_match.clear(); 
     }
-
     return result_homography;
 }
 
+
+cv::Mat getHomographyMat(const vector<Point2d> &src, const vector<Point2d> &dst){
+    Eigen::MatrixXd A(2 * src.size(), 9);
+    for(int i = 0; i < src.size(); ++i){
+        double x = src[i].x, y = src[i].y;
+        double u = dst[i].x, v = dst[i].y;
+
+        A(2*i, 0) = x;
+        A(2*i, 1) = y;
+        A(2*i, 2) = 1;
+        A(2*i, 3) = 0;
+        A(2*i, 4) = 0;
+        A(2*i, 5) = 0;
+        A(2*i, 6) = -1*x * u;
+        A(2*i, 7) = -1*y * u;
+        A(2*i, 8) = -1*u;
+
+        A(2*i+1, 0) = 0;
+        A(2*i+1, 1) = 0;
+        A(2*i+1, 2) = 0;
+        A(2*i+1, 3) = x;
+        A(2*i+1, 4) = y;
+        A(2*i+1, 5) = 1;
+        A(2*i+1, 6) = -1*x * v;
+        A(2*i+1, 7) = -1*y * v;
+        A(2*i+1, 8) = -1*v;
+    }
+    // Compute SVD of A
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeFullV);
+    Eigen::VectorXd h = svd.matrixV().col(8);
+    // Convert the Eigen matrix to cv::Mat
+    Mat H = Mat::zeros(3, 3, CV_64F);
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            H.at<double>(i, j) = h(i * 3 + j) / h(8);
+        }
+    }
+    return H;
+}
+
+////////
+cv::Mat getInitialHomographyRANSAC(const vector<cv::KeyPoint>& source, 
+                                   const vector<cv::KeyPoint>& destination,
+                                   const vector<bottom_up::FeatureMapping>& matches,
+                                   const int iteration) {
+
+    int MODEL_SAMPLE_SIZE = 4;
+    double EUCLIDIAN_THRESHOLD = 3.;
+    Mat best_homography = Mat::eye(3,3,CV_64FC1); ///////////this should not be null
+    int max_inlier =-999999999;// -INF
+
+    for(int i = 0; i < iteration; i++){
+        vector<bottom_up::FeatureMapping> interesting_match = sampleArbitaryMatches(matches, MODEL_SAMPLE_SIZE);
+        vector<Point2d> model_src_points, model_dst_points;
+        for(const auto &m : interesting_match){
+            model_src_points.push_back(source[m.here].pt);
+            model_dst_points.push_back(destination[m.there].pt);
+        }
+        Mat current_model = getHomographyMat(model_src_points, model_dst_points); 
+
+        int inlier = countInlier(source, destination, current_model, EUCLIDIAN_THRESHOLD);
+        if(inlier > max_inlier){
+            max_inlier = inlier;
+            best_homography = current_model;
+        }
+        interesting_match.clear(); 
+    }
+    cout << "max inlier" << max_inlier << "\n";
+    return best_homography;
+}
+
+/////////////////
+
+
+
+
+
+
+////
 
 int countInlier(vector<KeyPoint> queries, vector<KeyPoint> ground_truthes, Mat homography, double threshold){
     int num_inlier = 0;
@@ -154,18 +231,36 @@ vector<bottom_up::FeatureMapping> sampleArbitaryMatches(const vector<bottom_up::
     return interesting_match;
 } 
 
+
+
+vector<bottom_up::FeatureMapping> getInlierSamplesRANSAC(const Mat &homography, 
+                                                         const vector<KeyPoint> &src,
+                                                         const vector<KeyPoint> &dst,
+                                                         const vector<bottom_up::FeatureMapping>& matches,
+                                                         const int threshold,
+                                                         const int num_sample){
+    vector<bottom_up::FeatureMapping> inlier_matches;
+    int max_inlier =-999999999;// -INF
+    while(max_inlier < 5){
+        cout << max_inlier << " ";
+        vector<bottom_up::FeatureMapping> interest_match = sampleArbitaryMatches(matches, num_sample);
+        vector<KeyPoint> query_points, gt_points;
+        for (const auto& m : interest_match){
+            query_points.push_back(src[m.here]);
+            gt_points.push_back(dst[m.there]);
+        }
+        int inlier = countInlier(query_points, gt_points, homography, threshold);
+        cout << inlier << "\n";
+        if(inlier > max_inlier)
+            max_inlier = inlier;
+        
+        interest_match.clear(); 
+    }
+    return inlier_matches;
+}
 ///////////////////////////////////////////////////////////////////
 
-// Function to convert cv::Mat to Eigen::MatrixXd
-Eigen::MatrixXd cvMatToEigen(const cv::Mat &cvMat) {
-    Eigen::MatrixXd eigenMat(cvMat.rows, cvMat.cols);
-    for (int i = 0; i < cvMat.rows; ++i) {
-        for (int j = 0; j < cvMat.cols; ++j) {
-            eigenMat(i, j) = cvMat.at<double>(i, j);
-        }
-    }
-    return eigenMat;
-}
+
 
 // Function to apply homography to a point
 Point2d applyHomography(const Eigen::MatrixXd &H, const Point2d &pt) {
@@ -190,6 +285,50 @@ Eigen::MatrixXd computeJacobian(const Point2d &srcPt, const Eigen::MatrixXd &H) 
          0.0, 0.0, 0.0, x/w, y/w, 1.0/w, -x*v/(w*w), -y*v/(w*w);
     return J;
 }
+
+Mat ransacHomographyGN(const vector<KeyPoint> &src, const vector<KeyPoint> dst, const vector<bottom_up::FeatureMapping> matches, const Mat& initial_homogarphy, int num_iter){
+    assert(num_iter > 0);
+    Mat updated_homography = initial_homogarphy;
+    MatrixXd H = Mat2Eigen(initial_homogarphy);
+    int SAMPLE_SIZE = 6;
+    double threshold = 2.;
+    while(num_iter--){
+        vector<bottom_up::FeatureMapping> good_match =  getInlierSamplesRANSAC(updated_homography, src, dst, matches, threshold, SAMPLE_SIZE);
+
+        vector<Point2d> src_point;
+        vector<Point2d> dst_point;
+        for(bottom_up::FeatureMapping m : good_match){
+            src_point.push_back(src[m.here].pt);
+            dst_point.push_back(dst[m.there].pt);
+        }
+
+        src_point.clear();
+        dst_point.clear();
+    }
+    cout << updated_homography << "\n";
+    return updated_homography;
+}  
+
+
+vector<Point2d> vecKeyPoint2vecPoint2d(const vector<KeyPoint> kp){
+    vector<Point2d> result;
+    for(const auto &p : kp)
+        result.push_back(p.pt);
+    return result;
+}
+
+
+
+Eigen::MatrixXd Mat2Eigen(const Mat &m) {
+    Eigen::MatrixXd eigen_mat(m.rows, m.cols);
+    for (int i = 0; i < m.rows; ++i) {
+        for (int j = 0; j < m.cols; ++j) {
+            eigen_mat(i, j) = m.at<double>(i, j);
+        }
+    }
+    return eigen_mat;
+}
+
 
 // Gauss-Newton optimization to refine the homography matrix
 Eigen::MatrixXd refineHomographyGaussNewton(const vector<Point2d> &srcPoints, const vector<Point2d> &dstPoints, const Eigen::MatrixXd &initialHomography, int maxIterations) {

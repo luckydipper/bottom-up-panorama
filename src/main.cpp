@@ -77,7 +77,9 @@ int main(){
             good_matches[i][j] = top_500_matche;
             //bottom_up_homographys[i][j] =  bottom_up::computeHomographyDLT(keypoints[i], keypoints[j], top_500_matche);
             //cout <<i <<" -> " <<j << " " << initial_homography << "\n";
-            bottom_up_homographys[i][j] = bottom_up::computeHomographyDLT(keypoints[i], keypoints[j], top_500_matche);
+            //bottom_up_homographys[i][j] = bottom_up::computeHomographyDLT(keypoints[i], keypoints[j], top_500_matche);
+            //bottom_up::ransacHomographyGN(keypoints[i], keypoints[j], top_500_matche, bottom_up_homographys[i][j], 100);
+            bottom_up_homographys[i][j]  = bottom_up::getInitialHomographyRANSAC(keypoints[i], keypoints[j], top_500_matche,400);
             cout <<i <<" -> " <<j << "\n" << bottom_up_homographys[i][j] << "\n";
         }
     }    
