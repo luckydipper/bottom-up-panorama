@@ -23,8 +23,7 @@ cv::Mat computeHomographyDLT(const std::vector<cv::KeyPoint>& source,
                              const vector<bottom_up::FeatureMapping>& matches);
 cv::Mat computeHomographyGaussNewton(const std::vector<cv::KeyPoint>& source, 
                                      const std::vector<cv::KeyPoint>& destination,
-                                     const vector<bottom_up::FeatureMapping>& matches,
-                                     const Mat& current_homography);
+                                     const vector<bottom_up::FeatureMapping>& matches);
 int countInlier(vector<KeyPoint> queries, vector<KeyPoint> ground_truthes, Mat homography, double threshold);
 Eigen::MatrixXd cvMatToEigen(const cv::Mat &cvMat);
 Point2d applyHomography(const Eigen::MatrixXd &H, const Point2d &pt);

@@ -74,7 +74,8 @@ namespace bottom_up{
         int ceiling_x = floor_x+1, ceiling_y = floor_y+1;
         if(floor_y <= 0 || floor_x <= 0 || ceiling_x >=  origin_img.cols || ceiling_y >= origin_img.rows)
             return;
-
+        if(starting_x <=0 || starting_y <= 0)
+            return;
         target.at<Vec3b>(starting_y,starting_x) = origin_img.at<Vec3b>(floor_y, floor_x);
         if(origin_img.at<Vec3b> (floor_y,floor_x)[0] == 0)
             target.at<Vec3b>(starting_y, starting_x)[0]++; 

@@ -50,71 +50,21 @@ Mat getRotationMatrix(double theta1, double theta2, double theta3){
     return rotationMatrix;
 }
 
+
+
 cv::Mat computeHomographyDLT(const std::vector<cv::KeyPoint>& source, 
-                             const std::vector<cv::KeyPoint>& destination,
-                             const vector<bottom_up::FeatureMapping>& matches) {
-    
-    assert(source.size() == destination.size() && matches.size() >= 4);
-
-    // Jacobian 
-    Eigen::MatrixXd A(2 * matches.size(), 9);
-    for(int i = 0; i < matches.size(); ++i){
-        Point2d src_point = source[matches[i].here].pt, dst_point = destination[matches[i].there].pt;
-        double x = src_point.x, y = src_point.y;
-        double u = dst_point.x, v = dst_point.y;
-
-        A(2*i, 0) = -x;
-        A(2*i, 1) = -y;
-        A(2*i, 2) = -1;
-        A(2*i, 3) = 0;
-        A(2*i, 4) = 0;
-        A(2*i, 5) = 0;
-        A(2*i, 6) = x * u;
-        A(2*i, 7) = y * u;
-        A(2*i, 8) = u;
-
-        A(2*i+1, 0) = 0;
-        A(2*i+1, 1) = 0;
-        A(2*i+1, 2) = 0;
-        A(2*i+1, 3) = -x;
-        A(2*i+1, 4) = -y;
-        A(2*i+1, 5) = -1;
-        A(2*i+1, 6) = x * v;
-        A(2*i+1, 7) = y * v;
-        A(2*i+1, 8) = v;
-
-    }
-
-    // Compute SVD of A
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeFullV);
-    Eigen::VectorXd h = svd.matrixV().col(8);
-
-    // Convert the Eigen matrix to cv::Mat
-    cv::Mat H = cv::Mat::zeros(3, 3, CV_64F);
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            H.at<double>(i, j) = h(i * 3 + j) / h(8);
-        }
-    }
-
-    return H;
-}
-
-
-
-cv::Mat computeHomographyGaussNewton(const std::vector<cv::KeyPoint>& source, 
                                      const std::vector<cv::KeyPoint>& destination,
-                                     const vector<bottom_up::FeatureMapping>& matches,
-                                     const Mat& current_homography) {
+                                     const vector<bottom_up::FeatureMapping>& matches ) {
     
 
-    int ITERATION = 100, SAMPLE_SIZE = 6, EUCLIDIAN_THRESHOLD = 3;
+    int ITERATION = 100, SAMPLE_SIZE = 4;
+    double EUCLIDIAN_THRESHOLD = 1.;
     
  
     Mat result_homography;
     
     int max_inlier =-999999999;// -INF
-    while(max_inlier <= 5){
+    while(max_inlier < 4){
         //RANSAC 
         vector<bottom_up::FeatureMapping> interesting_match = sampleArbitaryMatches(matches, SAMPLE_SIZE);
 
@@ -161,16 +111,13 @@ cv::Mat computeHomographyGaussNewton(const std::vector<cv::KeyPoint>& source,
             query_points.push_back(source[m.here]);
             gt_points.push_back(destination[m.there]);
         }
-        int inlier = countInlier(query_points, gt_points, H, 3.);
-        
+        int inlier = countInlier(query_points, gt_points, H, EUCLIDIAN_THRESHOLD);
         if(inlier > max_inlier){
             max_inlier = inlier;
-            //cout << max_inlier << "\n";
             result_homography = H;
         }
         interesting_match.clear(); 
     }
-    //vector<bottom_up::FeatureMapping> interesting_match = sampleArbitaryMatches(matches, SAMPLE_SIZE);
 
     return result_homography;
 }
@@ -231,7 +178,7 @@ Point2d applyHomography(const Eigen::MatrixXd &H, const Point2d &pt) {
 Eigen::MatrixXd computeJacobian(const Point2d &srcPt, const Eigen::MatrixXd &H) {
     double x = srcPt.x;
     double y = srcPt.y;
-    Eigen::Vector3d pt_homogeneous(x, y, 1.0);
+    Eigen::Vector3d pt_homogeneous(x, y, 2.0);
     Eigen::Vector3d transformed_pt = H * pt_homogeneous;
 
     double u = transformed_pt(0);
