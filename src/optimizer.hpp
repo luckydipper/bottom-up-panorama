@@ -23,7 +23,9 @@ cv::Mat computeHomographyDLT(const std::vector<cv::KeyPoint>& source,
 cv::Mat computeHomographyGaussNewton(const std::vector<cv::KeyPoint>& source, 
                                      const std::vector<cv::KeyPoint>& destination,
                                      const vector<bottom_up::FeatureMapping>& matches);
-int countInlier(vector<KeyPoint> queries, vector<KeyPoint> ground_truthes, Mat homography, double threshold);
+//int countInlier(vector<KeyPoint> queries, vector<KeyPoint> ground_truthes, Mat homography, double threshold);
+int countInlier(vector<Point2d> queries, vector<Point2d> ground_truthes, Mat homography, double threshold);
+
 Eigen::MatrixXd Mat2Eigen(const cv::Mat &cvMat);
 Point2d applyHomography(const Eigen::MatrixXd &H, const Point2d &pt);
 vector<bottom_up::FeatureMapping> sampleArbitaryMatches(const vector<bottom_up::FeatureMapping>& matches, int sample_size);
@@ -35,8 +37,14 @@ cv::Mat getInitialHomographyRANSAC(const vector<cv::KeyPoint>& source,
                                    const vector<cv::KeyPoint>& destination,
                                    const vector<bottom_up::FeatureMapping>& matches,
                                    const int iteration);
-}
+
 
 cv::Mat getHomographyMat(const vector<Point2d> &src, const vector<Point2d> &dst);
+Mat RANSAC(vector<Point2d> src, vector<Point2d> dst, int iteration, double euclidian_threshold);
+vector<int> sampleMatch(int sample_size,int max_size);
+
+
+
+}
 
 #endif

@@ -17,13 +17,13 @@
 using namespace cv;
 using namespace std;
 
-Mat imgs[11];
-vector<KeyPoint> keypoints[11];
-Mat descriptors[11];
 
 int main(){
     // !!CAUTION!! All object's indexing imgs start with index 1.    
     // !!CAUTION!! If segment fault error are occured, type "ulimit -s unlimited" in your shell. FloodFill algorithm with DFS has heavy overhead
+    Mat imgs[11];
+    vector<KeyPoint> keypoints[11];
+    Mat descriptors[11];
     const int NUM_IMGS = 10;
     for(int i=1; i <= NUM_IMGS; i++){
         // Load imgs
@@ -36,57 +36,32 @@ int main(){
         assert(imgs[i].data && "image path is not valid."); 
     
         // detect and descript the imgs
-        Ptr<FeatureDetector> detector = ORB::create(); // By default make 500 features // 1000,1.2,8,31,0,2,ORB::HARRIS_SCORE,31,20
-        Ptr<DescriptorExtractor> descriptor = ORB::create(); // By default 32 byte per one keypoint. 
+        Ptr<FeatureDetector> detector = SIFT::create(); // By default make 500 features // 1000,1.2,8,31,0,2,ORB::HARRIS_SCORE,31,20
+        Ptr<DescriptorExtractor> descriptor = SIFT::create(); // By default 32 byte per one keypoint. 
         detector->detect(imgs[i],keypoints[i]);
         descriptor->compute(imgs[i],keypoints[i],descriptors[i]); // 256bit, 256 pair of points 256X2 points 32=> 8bit*32 bitmap
     }
     // matches and homographys are upper triangle matrix. without diagonose elements ex) [3][4]-> ok, [3][3], [4][3] -> error 
     vector<DMatch> matches[11][11]; 
     Mat homographys[11][11];
-    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming"); //, norm_hamming, DescriptorMatcher::create("BruteForce-Hamming")
-    for(int i = 1; i <= NUM_IMGS; i++){
-        for(int j = i+1; j <=NUM_IMGS; j++){
-            cout << "match between " << i << " and " << j <<" image.\n";
-            matcher->match(descriptors[i],descriptors[j],matches[i][j]);
-            vector<Point2i> pts1, pts2;
-            for(int k = 0; k <matches[i][j].size(); k++){
-                pts1.push_back(keypoints[i][ matches[i][j][k].queryIdx].pt );
-                pts2.push_back(keypoints[j][ matches[i][j][k].trainIdx].pt );
-            }
-            homographys[i][j] = findHomography(pts1, pts2,CV_RANSAC,3.,noArray(),10000,0.995);
-            pts1.clear();
-            pts2.clear();
+    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED); //, norm_hamming, DescriptorMatcher::create("BruteForce-Hamming")
+    
+    for(int i = 1; i <= 2; i++){
+        cout << "match between " << i << " and " << 5 <<" image.\n";
+        matcher->match(descriptors[i],descriptors[5],matches[i][5]);
+        vector<Point2d> pts1, pts2;
+        for(int k = 0; k <matches[i][5].size(); k++){
+            pts1.push_back(keypoints[i][ matches[i][5][k].queryIdx].pt );
+            pts2.push_back(keypoints[5][ matches[i][5][k].trainIdx].pt );
         }
+        //homographys[i][5] = findHomography(pts1, pts2,CV_RANSAC,3.,noArray(),10000,0.995);
+        homographys[i][5] = bottom_up::RANSAC(pts1, pts2, 500, 20.); //20
+        cout << "homography : " << homographys[i][5] << "\n";
+        pts1.clear();
+        pts2.clear();
+
     }
     cout << "Complete matching and homography. \n";
-
-    vector<bottom_up::FeatureMapping> good_matches[11][11];
-    Mat bottom_up_homographys[11][11];
-
-    for(int i = 1; i <= NUM_IMGS; i++){
-        for(int j = i+1; j <=NUM_IMGS; j++){
-            cout << "Bottom up Brute Force match between " << i << " and " << j <<" image.\n";
-            good_matches[i][j] = bottom_up::orbFeatureMatch(descriptors[i],descriptors[j]);
-            
-            //sorting by hamming distance
-            sort(good_matches[i][j].begin(), good_matches[i][j].end());
-
-            // pick top 500 matches.
-            vector<bottom_up::FeatureMapping> top_500_matche(good_matches[i][j].begin(), good_matches[i][j].begin()+500);
-            good_matches[i][j] = top_500_matche;
-            //bottom_up_homographys[i][j] =  bottom_up::computeHomographyDLT(keypoints[i], keypoints[j], top_500_matche);
-            //cout <<i <<" -> " <<j << " " << initial_homography << "\n";
-            //bottom_up_homographys[i][j] = bottom_up::computeHomographyDLT(keypoints[i], keypoints[j], top_500_matche);
-            //bottom_up::ransacHomographyGN(keypoints[i], keypoints[j], top_500_matche, bottom_up_homographys[i][j], 100);
-            //vector<bottom_up::FeatureMapping> match_gt;
-
-            int num_interation = 1000;
-            bottom_up_homographys[i][j]  = bottom_up::getInitialHomographyRANSAC(keypoints[i], keypoints[j], good_matches[i][j], num_interation);
-            cout <<i <<" -> " <<j << "\n" << bottom_up_homographys[i][j] << "\n";
-        }
-    }    
-
 
 
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -104,11 +79,11 @@ int main(){
 
     for(int i = 1; i <= NUM_IMGS; i++){
         Mat perspectiv_transform;
-        perspectiv_transform = bottom_up_homographys[i][REFERENCE]; 
+        perspectiv_transform = homographys[i][REFERENCE]; 
         if(i == REFERENCE)
             continue;
         else if( i > REFERENCE )
-            invert(bottom_up_homographys[REFERENCE][i],perspectiv_transform);
+            invert(homographys[REFERENCE][i],perspectiv_transform);
 
         //perspectiv_transform = (Mat_<double>(3,3) << 1.11673615e+00, -7.17904939e-02, -1.03418243e+03, 9.13088818e-02,  1.02092184e+00, -1.48211942e+02, 6.31173358e-05,-3.50995542e-05, 1.00000000e+00);
         Point2d translated_origin = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).first;
@@ -123,7 +98,7 @@ int main(){
         bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x));
         //cout << stitched_img.size() << " :  stitched_img size. \n";
         cout << projective_img.size() << " :  projective size. \n";
-        bottom_up::showResizedImg(projective_img,0.5);
+        bottom_up::showResizedImg(projective_img,0.2);
         bottom_up::showResizedImg(stitched_img, 0.1);
     }
 
