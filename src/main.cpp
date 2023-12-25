@@ -61,7 +61,7 @@ int main(){
             pts1.push_back(keypoints[i][ matches[i][i+1][k].queryIdx].pt );
             pts2.push_back(keypoints[i+1][ matches[i][i+1][k].trainIdx].pt );
         }
-        homographys[i][i+1] = bottom_up::getDLTHomographyRANSAC(pts1, pts2, 1000, 100.); //20
+        homographys[i][i+1] = bottom_up::getDLTHomographyRANSAC(pts1, pts2, 1000, 100. ,4); 
         cout << "homography : " << homographys[i][i+1] << "\n";
         pts1.clear();
         pts2.clear();
@@ -74,7 +74,7 @@ int main(){
             pts1.push_back(keypoints[i][ matches[i][i-1][k].queryIdx].pt );
             pts2.push_back(keypoints[i-1][ matches[i][i-1][k].trainIdx].pt );
         }
-        homographys[i][i-1] = bottom_up::getDLTHomographyRANSAC(pts1, pts2, 1000, 100.); //20
+        homographys[i][i-1] = bottom_up::getDLTHomographyRANSAC(pts1, pts2, 1000, 100. , 4); 
         cout << "homography : " << homographys[i][i-1] << "\n";
         pts1.clear();
         pts2.clear();

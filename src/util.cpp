@@ -28,7 +28,7 @@ void fillUnoccupiedImage(Mat& sparse_img, const Mat &filler, const pair<int,int>
                 if(target_x <= 0 || target_y <= 0 || target_x >= sparse_img.cols || target_y >= sparse_img.rows)
                     continue;
                 if(sparse_img.at<Vec3b>(target_y, target_x)[channel] != 0)
-                    continue;
+                    continue; //not visited
                 sparse_img.at<Vec3b>(target_y, target_x)[channel] = filler.at<Vec3b>(i, j)[channel];
             }
             

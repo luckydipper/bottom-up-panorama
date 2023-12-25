@@ -6,34 +6,6 @@ using namespace cv;
 
 namespace bottom_up{
 
-Mat getIntrinsicMatrix(double focal_length){
-    return Mat_<double>(3,3) << focal_length,0,0, 0,focal_length,0, 0,0,1;
-}
-
-Mat getRotationMatrix(double theta1, double theta2, double theta3){
-    double angle = sqrt(theta1 * theta1 + theta2 * theta2 + theta3 * theta3);
-
-    // Handle the case when the angle is zero to avoid division by zero
-    if (angle == 0) {
-        return Mat::eye(3, 3, CV_64F);
-    }
-
-    double rotation_x = theta1 / angle;
-    double rotation_y = theta2 / angle;
-    double rotation_z = theta3 / angle;
-
-    // Constructing the skew-symmetric matrix from the axis
-    Mat K = (Mat_<double>(3,3) << 
-                0, -rotation_z, rotation_y, 
-                rotation_z, 0, -rotation_x, 
-                -rotation_y, rotation_x, 0);
-
-    // Applying Rodrigues' formula
-    Mat rotationMatrix = Mat::eye(3, 3, CV_64F) + sin(angle) * K + (1 - cos(angle)) * K * K;
-
-    return rotationMatrix;
-}
-
 int countInlier(vector<Point2d> queries, vector<Point2d> ground_truthes, Mat homography, double threshold){
     vector<Point2d> predicts = bottom_up::getTransformedPoints(homography, queries);//std::vector<cv::Point2d> &original_points)
     int num_inlier = 0;
@@ -87,14 +59,13 @@ cv::Mat getHomographyMat(const vector<Point2d> &src, const vector<Point2d> &dst)
     return H;
 }
 
-Mat getDLTHomographyRANSAC(vector<Point2d> src, vector<Point2d> dst, int iteration, double euclidian_threshold){
+Mat getDLTHomographyRANSAC(vector<Point2d> src, vector<Point2d> dst, int iteration, double euclidian_threshold, int model_sample_size){
     
-    const int MODEL_SAMPLE_SIZE = 4; 
     Mat best_homography = Mat::eye(3,3,CV_64FC1); 
     int max_inlier =-999999999;// -INF
 
     while(iteration--){
-        vector<int> interesting_index =  sampleIndexes(MODEL_SAMPLE_SIZE, src.size());
+        vector<int> interesting_index =  sampleIndexes(model_sample_size, src.size());
         vector<Point2d> sampled_src, sampled_dst;
         for(int index : interesting_index){
             sampled_src.push_back(src[index]);
@@ -122,17 +93,43 @@ vector<int> sampleIndexes(int sample_size,int max_size){
     return interesting_match;
 } 
 
-// Function to apply homography to a point
-Point2d applyHomography(const Eigen::MatrixXd &H, const Point2d &pt) {
-    Eigen::Vector3d pt_homogeneous(pt.x, pt.y, 1.0);
-    Eigen::Vector3d transformed_pt = H * pt_homogeneous;
-    return Point2d(transformed_pt(0) / transformed_pt(2), transformed_pt(1) / transformed_pt(2));
+//*********************************************************************************************************************//
+// Below source codes are redundant. :(
+// I tried but I couldn't used it.
+
+Mat getIntrinsicMatrix(double focal_length){
+    return Mat_<double>(3,3) << focal_length,0,0, 0,focal_length,0, 0,0,1;
 }
 
+Mat getRotationMatrix(double theta1, double theta2, double theta3){
+    double angle = sqrt(theta1 * theta1 + theta2 * theta2 + theta3 * theta3);
+
+    // Handle the case when the angle is zero to avoid division by zero
+    if (angle == 0) {
+        return Mat::eye(3, 3, CV_64F);
+    }
+
+    double rotation_x = theta1 / angle;
+    double rotation_y = theta2 / angle;
+    double rotation_z = theta3 / angle;
+
+    // Constructing the skew-symmetric matrix from the axis
+    Mat K = (Mat_<double>(3,3) << 
+                0, -rotation_z, rotation_y, 
+                rotation_z, 0, -rotation_x, 
+                -rotation_y, rotation_x, 0);
+
+    // Applying Rodrigues' formula
+    Mat rotationMatrix = Mat::eye(3, 3, CV_64F) + sin(angle) * K + (1 - cos(angle)) * K * K;
+
+    return rotationMatrix;
+}
+
+
 // Function to compute the Jacobian matrix of the homography at a given point
-Eigen::MatrixXd computeJacobian(const Point2d &srcPt, const Eigen::MatrixXd &H) {
-    double x = srcPt.x;
-    double y = srcPt.y;
+Eigen::MatrixXd computeJacobian(const Point2d &src, const Eigen::MatrixXd &H) {
+    double x = src.x;
+    double y = src.y;
     Eigen::Vector3d pt_homogeneous(x, y, 2.0);
     Eigen::Vector3d transformed_pt = H * pt_homogeneous;
 
@@ -166,43 +163,43 @@ Eigen::MatrixXd Mat2Eigen(const Mat &m) {
 
 
 // Gauss-Newton optimization to refine the homography matrix
-Eigen::MatrixXd refineHomographyGaussNewton(const vector<Point2d> &srcPoints, const vector<Point2d> &dstPoints, const Eigen::MatrixXd &initialHomography, int maxIterations) {
-    Eigen::MatrixXd H = initialHomography;
-    for (int iter = 0; iter < maxIterations; ++iter) {
-        Eigen::MatrixXd J; // Overall Jacobian matrix
-        Eigen::VectorXd r; // Overall residual vector
+// Eigen::MatrixXd refineHomographyGaussNewton(const vector<Point2d> &src, const vector<Point2d> &dst, const Eigen::MatrixXd &initial_homography, int max_iterations) {
+//     Eigen::MatrixXd H = initial_homography;
+//     for (int iter = 0; iter < maxIterations; ++iter) {
+//         Eigen::MatrixXd J; // Overall Jacobian matrix
+//         Eigen::VectorXd r; // Overall residual vector
 
-        for (size_t i = 0; i < srcPoints.size(); ++i) {
-            Point2d transformed_pt = applyHomography(H, srcPoints[i]);
-            Eigen::MatrixXd J_i = computeJacobian(srcPoints[i], H); // Jacobian for this point
+//         for (size_t i = 0; i < src.size(); ++i) {
+//             Point2d transformed_pt = applyHomography(H, src[i]);
+//             Eigen::MatrixXd J_i = computeJacobian(src[i], H); // Jacobian for this point
 
-            // Residual for this point
-            Eigen::VectorXd r_i(2);
-            r_i << transformed_pt.x - dstPoints[i].x, transformed_pt.y - dstPoints[i].y;
+//             // Residual for this point
+//             Eigen::VectorXd r_i(2);
+//             r_i << transformed_pt.x - dstPoints[i].x, transformed_pt.y - dstPoints[i].y;
 
-            // Append to overall Jacobian and residual
-            J.conservativeResize(J.rows() + J_i.rows(), Eigen::NoChange);
-            J.bottomRows(J_i.rows()) = J_i;
-            r.conservativeResize(r.size() + r_i.size());
-            r.tail(r_i.size()) = r_i;
-        }
+//             // Append to overall Jacobian and residual
+//             J.conservativeResize(J.rows() + J_i.rows(), Eigen::NoChange);
+//             J.bottomRows(J_i.rows()) = J_i;
+//             r.conservativeResize(r.size() + r_i.size());
+//             r.tail(r_i.size()) = r_i;
+//         }
 
-        // Compute the update
-        Eigen::VectorXd delta = (J.transpose() * J).ldlt().solve(-J.transpose() * r);
+//         // Compute the update
+//         Eigen::VectorXd delta = (J.transpose() * J).ldlt().solve(-J.transpose() * r);
 
-        // Update the homography matrix
-        Eigen::MatrixXd deltaMat = Eigen::MatrixXd::Identity(3, 3);
-        deltaMat(0, 0) += delta(0);
-        deltaMat(0, 1) += delta(1);
-        deltaMat(0, 2) += delta(2);
-        deltaMat(1, 0) += delta(3);
-        deltaMat(1, 1) += delta(4);
-        deltaMat(1, 2) += delta(5);
-        deltaMat(2, 0) += delta(6);
-        deltaMat(2, 1) += delta(7);
+//         // Update the homography matrix
+//         Eigen::MatrixXd deltaMat = Eigen::MatrixXd::Identity(3, 3);
+//         deltaMat(0, 0) += delta(0);
+//         deltaMat(0, 1) += delta(1);
+//         deltaMat(0, 2) += delta(2);
+//         deltaMat(1, 0) += delta(3);
+//         deltaMat(1, 1) += delta(4);
+//         deltaMat(1, 2) += delta(5);
+//         deltaMat(2, 0) += delta(6);
+//         deltaMat(2, 1) += delta(7);
 
-        H = H * deltaMat;
-    }
-    return H;
-}
+//         H = H * deltaMat;
+//     }
+//     return H;
+// }
 }

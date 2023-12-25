@@ -1,3 +1,4 @@
+// This module is made in order to testing other modules
 #ifndef gui_test_bottom_up_panorama
     #include <iostream>
     #include <vector>
