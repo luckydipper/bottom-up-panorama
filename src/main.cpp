@@ -108,7 +108,7 @@ int main(){
     cv::Mat stitched_img(Size(IMAGE_WIDTH*5, IMAGE_HEIGHT*5), CV_8UC3);
 
     Mat reference_img = imgs[REFERENCE];
-    bottom_up::fillUnoccupiedImage(stitched_img, reference_img, make_pair(ORIGIN_ROW , ORIGIN_COL), bottom_up::Blending::average);
+    bottom_up::fillUnoccupiedImage(stitched_img, reference_img, make_pair(ORIGIN_ROW , ORIGIN_COL), bottom_up::Blending::first_come);
     bottom_up::showResizedImg(stitched_img, 0.05);
 
     for(int i = 1; i <= 10; i++){
@@ -129,7 +129,7 @@ int main(){
         // Get transformed images. 
         // The reason multiplying the translation_matrix is to make full image, without skip
         Mat projective_img = bottom_up::backWarpImgFloodFill(imgs[i],translation_matrix*perspectiv_transform, bottom_up::Interpolation::nearest); 
-        bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x), bottom_up::Blending::average);
+        bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x), bottom_up::Blending::first_come);
         cout << projective_img.size() << " :  projective size. \n";
         bottom_up::showResizedImg(projective_img,0.2);
         bottom_up::showResizedImg(stitched_img, 0.1);
