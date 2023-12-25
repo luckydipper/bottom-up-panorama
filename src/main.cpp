@@ -1,13 +1,8 @@
-#include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #include <string>
 #include <cassert>
 #include <fstream>
 #include <cmath>
-#include <opencv2/highgui/highgui_c.h>
-#include <opencv2/calib3d.hpp> // FindHomography
-#include <opencv2/calib3d/calib3d_c.h> // CV_RANSAC
-#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d.hpp> // FeatureDetector, DescriptorExtractor
 #include <opencv2/core.hpp> // inside type,  Keypoints
 #include <eigen3/Eigen/Core>
@@ -26,6 +21,7 @@ int main(){
     vector<KeyPoint> keypoints[11];
     Mat descriptors[11];
     const int NUM_IMGS = 10;
+
     for(int i=1; i <= NUM_IMGS; i++){
         // Load imgs
         string src("../imgs/");
@@ -42,11 +38,21 @@ int main(){
         detector->detect(imgs[i],keypoints[i]);
         descriptor->compute(imgs[i],keypoints[i],descriptors[i]); // 256bit, 256 pair of points 256X2 points 32=> 8bit*32 bitmap
     }
-    // matches and homographys are upper triangle matrix. without diagonose elements ex) [3][4]-> ok, [3][3], [4][3] -> error 
+
+    // matches and homography's square brackets are img's index!:  
+    // ex) matches[1][5] -> matching data img 1 to img 5
+    // ex) homography[1][5] -> homography matrix img 1 to img 5
     vector<DMatch> matches[11][11]; 
     Mat homographys[11][11];
-    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED); //, norm_hamming, DescriptorMatcher::create("BruteForce-Hamming")
+    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
+    
+    // Reference is mid index of the imgs
     const int REFERENCE = 5;
+
+
+    // We need to compute step homography(perspective) matrix. H[i][i+1] 
+    // Dynamic Programming caching the homography.
+    // ex) H[1][5] = H[1][2] * H[2][3] * H[3][4] * H[4][5];
     for(int i = 1; i < REFERENCE; i++){
         cout << "match between " << i << " and " << i+1 <<" image.\n";
         matcher->match(descriptors[i],descriptors[i+1],matches[i][i+1]);
@@ -55,14 +61,11 @@ int main(){
             pts1.push_back(keypoints[i][ matches[i][i+1][k].queryIdx].pt );
             pts2.push_back(keypoints[i+1][ matches[i][i+1][k].trainIdx].pt );
         }
-        //homographys[i][REFERENCE] = findHomography(pts1, pts2,CV_RANSAC,3.,noArray(),10000,0.995);
-        homographys[i][i+1] = bottom_up::RANSAC(pts1, pts2, 1000, 100.); //20
+        homographys[i][i+1] = bottom_up::getDLTHomographyRANSAC(pts1, pts2, 1000, 100.); //20
         cout << "homography : " << homographys[i][i+1] << "\n";
         pts1.clear();
         pts2.clear();
     }
-    cout << "Complete matching and homography. \n";
-
     for(int i = 10; i > REFERENCE ; i--){
         cout << "match between " << i << " and " << i-1 <<" image.\n";
         matcher->match(descriptors[i],descriptors[i-1],matches[i][i-1]);
@@ -71,17 +74,14 @@ int main(){
             pts1.push_back(keypoints[i][ matches[i][i-1][k].queryIdx].pt );
             pts2.push_back(keypoints[i-1][ matches[i][i-1][k].trainIdx].pt );
         }
-        //homographys[i][5] = findHomography(pts1, pts2,CV_RANSAC,3.,noArray(),10000,0.995);
-        homographys[i][i-1] = bottom_up::RANSAC(pts1, pts2, 1000, 100.); //20
+        homographys[i][i-1] = bottom_up::getDLTHomographyRANSAC(pts1, pts2, 1000, 100.); //20
         cout << "homography : " << homographys[i][i-1] << "\n";
         pts1.clear();
         pts2.clear();
     }
-    // homographys[10][5] = homographys[10][9] * homographys[9][8] * homographys[8][7] * homographys[7][6] * homographys[6][5];
-    // homographys[9][5] = homographys[9][8] * homographys[8][7] * homographys[7][6] * homographys[6][5];
-    // homographys[8][5] = homographys[8][7] * homographys[7][6] * homographys[6][5];
-    // homographys[7][5] = homographys[7][6] * homographys[6][5];
 
+    // Get homography(persepective) matrix to reference img.
+    // Using DP, use stored homography.
     for(int i = 1; i < REFERENCE ; i++){
         int step = REFERENCE - i;
         homographys[i][REFERENCE] = homographys[i][i+1];
@@ -98,7 +98,9 @@ int main(){
         cout << "homography " << i << " -> " << REFERENCE << "\n";
         cout << homographys[i][REFERENCE] << "\n";   
     }
-    ///////////////////////////////////////////////////////////////////////////////////////
+
+    cout << "Complete matching and homography. \n";
+
     const int IMAGE_HEIGHT = imgs[1].rows, IMAGE_WIDTH = imgs[1].cols;
     const int ORIGIN_ROW = IMAGE_HEIGHT*1, ORIGIN_COL = IMAGE_WIDTH*2;
     
@@ -107,7 +109,6 @@ int main(){
 
     Mat reference_img = imgs[REFERENCE];
     bottom_up::fillUnoccupiedImage(stitched_img, reference_img, make_pair(ORIGIN_ROW , ORIGIN_COL));
-
     bottom_up::showResizedImg(stitched_img, 0.05);
 
     for(int i = NUM_IMGS; i >= 1; i--){
@@ -115,30 +116,32 @@ int main(){
         perspectiv_transform = homographys[i][REFERENCE]; 
         if(i == REFERENCE)
             continue;
-        //else if( i > REFERENCE )
-            //invert(homographys[REFERENCE][i], perspectiv_transform);
-
-        //perspectiv_transform = (Mat_<double>(3,3) << 1.11673615e+00, -7.17904939e-02, -1.03418243e+03, 9.13088818e-02,  1.02092184e+00, -1.48211942e+02, 6.31173358e-05,-3.50995542e-05, 1.00000000e+00);
+        
+        // Get region of interest size and location. 
         Point2d translated_origin = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).first;
         Size transform_size = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).second; 
+
         Mat translation_matrix = Mat::eye(3, 3, CV_64F);
         translation_matrix.at<double>(0,2) = -translated_origin.x;
         translation_matrix.at<double>(1,2) = -translated_origin.y;
 
         cout << i << " image Stitching...\n";
-        Mat projective_img = bottom_up::getHomographyImg(imgs[i],translation_matrix*perspectiv_transform);
+        // Get transformed images. 
+        // The reason multiplying the translation_matrix is to make full image, without skip
+        Mat projective_img = bottom_up::backWarpImgFloodFill(imgs[i],translation_matrix*perspectiv_transform); 
         bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x));
-        //cout << stitched_img.size() << " :  stitched_img size. \n";
         cout << projective_img.size() << " :  projective size. \n";
         bottom_up::showResizedImg(projective_img,0.2);
         bottom_up::showResizedImg(stitched_img, 0.1);
         
+        // Save perspective transformed img
         cout << "projective Image  saving..\n";
         string file_name = "projective";
         string extention =".jpg";
         file_name = file_name + to_string(i) + extention;
         cv::imwrite(file_name, projective_img);
 
+        // Save Homography matrix and it's location
         ofstream fout;
         file_name = to_string(i) + "_box_roi.txt";
         fout.open(file_name);

@@ -46,7 +46,7 @@ namespace bottom_up{
         return {minPt, Size(maxPt.x - minPt.x, maxPt.y - minPt.y)};
     }
 
-    Mat getHomographyImg(const Mat& origin_img, const Mat& perspective_transform){
+    Mat backWarpImgFloodFill(const Mat& origin_img, const Mat& perspective_transform){
 
         Mat inv_perspect;
         invert(perspective_transform, inv_perspect);
