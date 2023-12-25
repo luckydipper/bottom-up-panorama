@@ -38,5 +38,7 @@ namespace bottom_up{
     // Using outer produt determin suspecting point are counter clockwise to the img corner.
     bool isInSquare(const vector<Point2d>& square_points, const Point2d& query_point);
     bool isCounterClock(const Point2d& origin, const Point2d& img_corner, const Point2d& suspect);
+
+    void fillUnoccupiedImage(Mat& sparse_img, const Mat &filler, pair<int,int> origin);
 }
 #endif

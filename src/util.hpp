@@ -19,5 +19,4 @@ void showResizedImg(const Mat& img, const double size_ratio);
 // We can do this more effectively 
 // 1. By memset and controlling the sequence pasted. 
 // 2. By image blending.
-void fillUnoccupiedImage(Mat& sparse_img, const Mat &filler, pair<int,int> origin);
 }
