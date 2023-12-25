@@ -42,7 +42,7 @@ namespace bottom_up{
 
     // !!CAUTION!! This function is realy realy heavy. to execute this function you should have large RAM space. (16G was enough, in ubuntu22.04)
     // !!CAUTION!! To execute this program you need to chat "ulimit -s unlimited" command in your shell. That command will prevent stack overflow.
-    Mat backWarpImgFloodFill(const Mat& origin_img, const Mat& perspective_transform){
+    Mat backWarpImgFloodFill(const Mat& origin_img, const Mat& perspective_transform, Interpolation interpol){
 
         Mat inv_perspect;
         invert(perspective_transform, inv_perspect);
@@ -55,12 +55,12 @@ namespace bottom_up{
 
         Point2d perspective_mid = getTransformedPoints(perspective_transform, Point2d(origin_img.cols/2,origin_img.rows/2) );
 
-        implFlooding(transformed_points, inv_perspect, (int)perspective_mid.y, (int)perspective_mid.x, origin_img, result);
+        implFlooding(transformed_points, inv_perspect, (int)perspective_mid.y, (int)perspective_mid.x, origin_img, result, interpol);
         return result;
     }
     // !!CAUTION!! This function is realy realy heavy. to execute this function you should have large RAM space. (16G was enough, in ubuntu22.04)
     // !!CAUTION!! To execute this program you need to chat "ulimit -s unlimited" command in your shell. That command will prevent stack overflow.
-    void implFlooding(const vector<Point2d>& square_points, const Mat& inverse_perspective, const int starting_y, const int starting_x, const Mat&origin_img,  Mat& target){
+    void implFlooding(const vector<Point2d>& square_points, const Mat& inverse_perspective, const int starting_y, const int starting_x, const Mat&origin_img,  Mat& target, Interpolation interpol){
         Point2d inv_coordinate = getTransformedPoints(inverse_perspective, Point2d(starting_x, starting_y));
         double inv_y = inv_coordinate.y, inv_x = inv_coordinate.x;
 
@@ -70,7 +70,13 @@ namespace bottom_up{
             return;
         if(starting_x <=0 || starting_y <= 0)
             return;
-        target.at<Vec3b>(starting_y,starting_x) = origin_img.at<Vec3b>(floor_y, floor_x);
+        if(interpol == Interpolation::nearest)
+            target.at<Vec3b>(starting_y,starting_x) = origin_img.at<Vec3b>(floor_y, floor_x);
+        else if(interpol == Interpolation::linear)
+            target.at<Vec3b>(starting_y,starting_x) = origin_img.at<Vec3b>(floor_y, floor_x);
+        else
+            assert(false);
+        
         if(origin_img.at<Vec3b> (floor_y,floor_x)[0] == 0)
             target.at<Vec3b>(starting_y, starting_x)[0]++; 
         int dy[8] = {-1,-1,-1, 0, 0, 1, 1, 1};
@@ -82,7 +88,7 @@ namespace bottom_up{
                 continue;
             if( !isInSquare( square_points, Point2d(starting_x+dx[direction],starting_y+dy[direction]) ) ) // HERE
                 continue;
-            implFlooding(square_points, inverse_perspective, starting_y+dy[direction], starting_x+dx[direction], origin_img, target);
+            implFlooding(square_points, inverse_perspective, starting_y+dy[direction], starting_x+dx[direction], origin_img, target, interpol);
         }
     }
 
@@ -134,11 +140,15 @@ namespace bottom_up{
                 if(sparse_img.at<Vec3b>(target_y, target_x)[channel] != 0){
                     if(blend == Blending::first_come)
                         continue;
-                    else if(blend == Blending::average)
+                    else if(blend == Blending::average){
                         if( filler.at<Vec3b>(i, j)[channel] != 0)
                             sparse_img.at<Vec3b>(target_y, target_x)[channel] = (filler.at<Vec3b>(i, j)[channel] + sparse_img.at<Vec3b>(target_y, target_x)[channel])/2;
+                        continue;
+                    }
                     else{
-                        cout << blend;
+                        cout << blend <<"\n";
+                        cout << Blending::average << "\n";
+                        cout << Blending::first_come << "\n";
                         continue;
                     }
                 }

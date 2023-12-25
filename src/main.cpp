@@ -111,7 +111,7 @@ int main(){
     bottom_up::fillUnoccupiedImage(stitched_img, reference_img, make_pair(ORIGIN_ROW , ORIGIN_COL), bottom_up::Blending::average);
     bottom_up::showResizedImg(stitched_img, 0.05);
 
-    for(int i = NUM_IMGS; i >= 1; i--){
+    for(int i = 1; i <= 10; i++){
         Mat perspectiv_transform;
         perspectiv_transform = homographys[i][REFERENCE]; 
         if(i == REFERENCE)
@@ -128,7 +128,7 @@ int main(){
         cout << i << " image Stitching...\n";
         // Get transformed images. 
         // The reason multiplying the translation_matrix is to make full image, without skip
-        Mat projective_img = bottom_up::backWarpImgFloodFill(imgs[i],translation_matrix*perspectiv_transform); 
+        Mat projective_img = bottom_up::backWarpImgFloodFill(imgs[i],translation_matrix*perspectiv_transform, bottom_up::Interpolation::nearest); 
         bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x), bottom_up::Blending::average);
         cout << projective_img.size() << " :  projective size. \n";
         bottom_up::showResizedImg(projective_img,0.2);

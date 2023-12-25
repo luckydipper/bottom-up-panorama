@@ -10,7 +10,7 @@ using namespace std;
 namespace bottom_up{
     enum Interpolation{
         linear,
-        polar,
+        nearest,
     };
 
     // This function only suport double 3d points
@@ -28,8 +28,9 @@ namespace bottom_up{
     // !!CAUTION!! This function is realy realy heavy. to execute this function you should have large RAM space. (16G was enough, in ubuntu22.04)
     // !!CAUTION!! To execute this program you need to chat "ulimit -s unlimited" command in your shell. That command will prevent stack overflow.
     // using DFS back flood filling the transformed imgs.
-    Mat backWarpImgFloodFill(const Mat& img, const Mat& perspective_transform);
-    void implFlooding(const vector<Point2d>& square_points, const Mat& inverse_perspective, const int starting_y, const int starting_x, const Mat&origin_img,  Mat& target);
+    // TBD : linear interpolation 
+    Mat backWarpImgFloodFill(const Mat& img, const Mat& perspective_transform, Interpolation interpol = Interpolation::nearest);
+    void implFlooding(const vector<Point2d>& square_points, const Mat& inverse_perspective, const int starting_y, const int starting_x, const Mat&origin_img,  Mat& target,Interpolation interpol = Interpolation::nearest);
     
     // Check channel are visted 
     bool isChannelOccupied(const Mat& img, int y, int x);
@@ -46,8 +47,6 @@ namespace bottom_up{
     // This has O(img.cols * img.rows * num_channel) complexity. 
     // We can do this more effectively 
     // 1. By memset and controlling the sequence pasted. 
-    // 2. By image blending.
-    // above two blending method are possible. 
     void fillUnoccupiedImage(Mat& sparse_img, const Mat &filler, pair<int,int> origin, Blending blend = Blending::first_come);
 }
 #endif
