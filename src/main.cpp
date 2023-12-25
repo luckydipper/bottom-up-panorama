@@ -46,25 +46,58 @@ int main(){
     vector<DMatch> matches[11][11]; 
     Mat homographys[11][11];
     Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED); //, norm_hamming, DescriptorMatcher::create("BruteForce-Hamming")
-    
-    for(int i = 1; i <= NUM_IMGS; i++){
-        cout << "match between " << i << " and " << 5 <<" image.\n";
-        matcher->match(descriptors[i],descriptors[5],matches[i][5]);
+    const int REFERENCE = 5;
+    for(int i = 1; i < REFERENCE; i++){
+        cout << "match between " << i << " and " << i+1 <<" image.\n";
+        matcher->match(descriptors[i],descriptors[i+1],matches[i][i+1]);
         vector<Point2d> pts1, pts2;
-        for(int k = 0; k <matches[i][5].size(); k++){
-            pts1.push_back(keypoints[i][ matches[i][5][k].queryIdx].pt );
-            pts2.push_back(keypoints[5][ matches[i][5][k].trainIdx].pt );
+        for(int k = 0; k <matches[i][i+1].size(); k++){
+            pts1.push_back(keypoints[i][ matches[i][i+1][k].queryIdx].pt );
+            pts2.push_back(keypoints[i+1][ matches[i][i+1][k].trainIdx].pt );
         }
-        //homographys[i][5] = findHomography(pts1, pts2,CV_RANSAC,3.,noArray(),10000,0.995);
-        homographys[i][5] = bottom_up::RANSAC(pts1, pts2, 100, 70.); //20
-        cout << "homography : " << homographys[i][5] << "\n";
+        //homographys[i][REFERENCE] = findHomography(pts1, pts2,CV_RANSAC,3.,noArray(),10000,0.995);
+        homographys[i][i+1] = bottom_up::RANSAC(pts1, pts2, 1000, 100.); //20
+        cout << "homography : " << homographys[i][i+1] << "\n";
         pts1.clear();
         pts2.clear();
-
     }
     cout << "Complete matching and homography. \n";
 
+    for(int i = 10; i > REFERENCE ; i--){
+        cout << "match between " << i << " and " << i-1 <<" image.\n";
+        matcher->match(descriptors[i],descriptors[i-1],matches[i][i-1]);
+        vector<Point2d> pts1, pts2;
+        for(int k = 0; k <matches[i][i-1].size(); k++){
+            pts1.push_back(keypoints[i][ matches[i][i-1][k].queryIdx].pt );
+            pts2.push_back(keypoints[i-1][ matches[i][i-1][k].trainIdx].pt );
+        }
+        //homographys[i][5] = findHomography(pts1, pts2,CV_RANSAC,3.,noArray(),10000,0.995);
+        homographys[i][i-1] = bottom_up::RANSAC(pts1, pts2, 1000, 100.); //20
+        cout << "homography : " << homographys[i][i-1] << "\n";
+        pts1.clear();
+        pts2.clear();
+    }
+    // homographys[10][5] = homographys[10][9] * homographys[9][8] * homographys[8][7] * homographys[7][6] * homographys[6][5];
+    // homographys[9][5] = homographys[9][8] * homographys[8][7] * homographys[7][6] * homographys[6][5];
+    // homographys[8][5] = homographys[8][7] * homographys[7][6] * homographys[6][5];
+    // homographys[7][5] = homographys[7][6] * homographys[6][5];
 
+    for(int i = 1; i < REFERENCE ; i++){
+        int step = REFERENCE - i;
+        homographys[i][REFERENCE] = homographys[i][i+1];
+        for(int j = 0; j < step; j++)
+            homographys[i][REFERENCE] = homographys[i][REFERENCE] * homographys[i+j][i+j+1];
+        cout << "homography " << i << " -> " << REFERENCE << "\n";
+        cout << homographys[i][REFERENCE] << "\n";   
+    }
+    for(int i = 10; i > REFERENCE ; i--){
+        int step = i - REFERENCE;
+        homographys[i][REFERENCE] = homographys[i][i-1];
+        for(int j = 0; j < step; j++)
+            homographys[i][REFERENCE] = homographys[i][REFERENCE] * homographys[i-j][i-j-1];
+        cout << "homography " << i << " -> " << REFERENCE << "\n";
+        cout << homographys[i][REFERENCE] << "\n";   
+    }
     ///////////////////////////////////////////////////////////////////////////////////////
     const int IMAGE_HEIGHT = imgs[1].rows, IMAGE_WIDTH = imgs[1].cols;
     const int ORIGIN_ROW = IMAGE_HEIGHT*1, ORIGIN_COL = IMAGE_WIDTH*2;
@@ -72,13 +105,12 @@ int main(){
     // This is Domain img.
     cv::Mat stitched_img(Size(IMAGE_WIDTH*5, IMAGE_HEIGHT*5), CV_8UC3);
 
-    const int REFERENCE = 5;
     Mat reference_img = imgs[REFERENCE];
     bottom_up::fillUnoccupiedImage(stitched_img, reference_img, make_pair(ORIGIN_ROW , ORIGIN_COL));
 
     bottom_up::showResizedImg(stitched_img, 0.05);
 
-    for(int i = 1; i <= NUM_IMGS; i++){
+    for(int i = NUM_IMGS; i >= 1; i--){
         Mat perspectiv_transform;
         perspectiv_transform = homographys[i][REFERENCE]; 
         if(i == REFERENCE)
