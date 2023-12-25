@@ -21,7 +21,6 @@ namespace bottom_up{
         Mat homgeneous_tmp = perspect_transform * Mat( Vec3d(original_point.x, original_point.y, 1) );
         return {homgeneous_tmp.at<double>(0)/homgeneous_tmp.at<double>(2), homgeneous_tmp.at<double>(1)/homgeneous_tmp.at<double>(2)} ;
     }
-
     pair<Point2d,Size> getTranslatedBox(const Mat& perspective_transform, const Mat& img){
         // !!Caution!! Corner points sequance should be 0,0 -> 0,1 -> 1,0 -> 1,1 ex) like drawing the latter "Z"
         vector<Point2d> orignal_points = {Point2d(0, 0),        Point2d(img.cols, 0),
@@ -39,6 +38,7 @@ namespace bottom_up{
         }
         return {minPt, Size(maxPt.x - minPt.x, maxPt.y - minPt.y)};
     }
+
 
     // !!CAUTION!! This function is realy realy heavy. to execute this function you should have large RAM space. (16G was enough, in ubuntu22.04)
     // !!CAUTION!! To execute this program you need to chat "ulimit -s unlimited" command in your shell. That command will prevent stack overflow.
@@ -120,17 +120,29 @@ namespace bottom_up{
             return false;
     }
     
-    void fillUnoccupiedImage(Mat& sparse_img, const Mat &filler, const pair<int,int> origin){
+    void fillUnoccupiedImage(Mat& sparse_img, const Mat &filler, const pair<int,int> origin, Blending blend){
     for(int i = 0; i < filler.rows; i++){
         for(int j =0; j < filler.cols; j++){
             int target_y = origin.first + i;
             int target_x = origin.second + j;
             
             for(int channel = 0; channel < 3; channel++){
+                //out of range
                 if(target_x <= 0 || target_y <= 0 || target_x >= sparse_img.cols || target_y >= sparse_img.rows)
                     continue;
-                if(sparse_img.at<Vec3b>(target_y, target_x)[channel] != 0)
-                    continue; //not visited
+                //is visited
+                if(sparse_img.at<Vec3b>(target_y, target_x)[channel] != 0){
+                    if(blend == Blending::first_come)
+                        continue;
+                    else if(blend == Blending::average)
+                        if( filler.at<Vec3b>(i, j)[channel] != 0)
+                            sparse_img.at<Vec3b>(target_y, target_x)[channel] = (filler.at<Vec3b>(i, j)[channel] + sparse_img.at<Vec3b>(target_y, target_x)[channel])/2;
+                    else{
+                        cout << blend;
+                        continue;
+                    }
+                }
+                    
                 sparse_img.at<Vec3b>(target_y, target_x)[channel] = filler.at<Vec3b>(i, j)[channel];
             }
             

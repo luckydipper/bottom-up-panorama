@@ -15,8 +15,5 @@ namespace bottom_up{
 void showKeypoints(const Mat &img, const vector<KeyPoint> &keypoints, const double size_ratio);
 void showResizedImg(const Mat& img, const double size_ratio);
 
-// This has O(img.cols * img.rows * num_channel) complexity. 
-// We can do this more effectively 
-// 1. By memset and controlling the sequence pasted. 
-// 2. By image blending.
+
 }
