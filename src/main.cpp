@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <cassert>
+#include <fstream>
 #include <cmath>
 #include <opencv2/highgui/highgui_c.h>
 #include <opencv2/calib3d.hpp> // FindHomography
@@ -46,7 +47,7 @@ int main(){
     Mat homographys[11][11];
     Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED); //, norm_hamming, DescriptorMatcher::create("BruteForce-Hamming")
     
-    for(int i = 1; i <= 2; i++){
+    for(int i = 1; i <= NUM_IMGS; i++){
         cout << "match between " << i << " and " << 5 <<" image.\n";
         matcher->match(descriptors[i],descriptors[5],matches[i][5]);
         vector<Point2d> pts1, pts2;
@@ -55,7 +56,7 @@ int main(){
             pts2.push_back(keypoints[5][ matches[i][5][k].trainIdx].pt );
         }
         //homographys[i][5] = findHomography(pts1, pts2,CV_RANSAC,3.,noArray(),10000,0.995);
-        homographys[i][5] = bottom_up::RANSAC(pts1, pts2, 500, 20.); //20
+        homographys[i][5] = bottom_up::RANSAC(pts1, pts2, 100, 70.); //20
         cout << "homography : " << homographys[i][5] << "\n";
         pts1.clear();
         pts2.clear();
@@ -82,8 +83,8 @@ int main(){
         perspectiv_transform = homographys[i][REFERENCE]; 
         if(i == REFERENCE)
             continue;
-        else if( i > REFERENCE )
-            invert(homographys[REFERENCE][i],perspectiv_transform);
+        //else if( i > REFERENCE )
+            //invert(homographys[REFERENCE][i], perspectiv_transform);
 
         //perspectiv_transform = (Mat_<double>(3,3) << 1.11673615e+00, -7.17904939e-02, -1.03418243e+03, 9.13088818e-02,  1.02092184e+00, -1.48211942e+02, 6.31173358e-05,-3.50995542e-05, 1.00000000e+00);
         Point2d translated_origin = bottom_up::getTranslatedBox(perspectiv_transform, imgs[i]).first;
@@ -94,17 +95,29 @@ int main(){
 
         cout << i << " image Stitching...\n";
         Mat projective_img = bottom_up::getHomographyImg(imgs[i],translation_matrix*perspectiv_transform);
-        ////TODO : If i use bottomup homography matrix, abort error happen.
         bottom_up::fillUnoccupiedImage(stitched_img, projective_img, make_pair(ORIGIN_ROW+translated_origin.y , ORIGIN_COL+translated_origin.x));
         //cout << stitched_img.size() << " :  stitched_img size. \n";
         cout << projective_img.size() << " :  projective size. \n";
         bottom_up::showResizedImg(projective_img,0.2);
         bottom_up::showResizedImg(stitched_img, 0.1);
+        
+        cout << "projective Image  saving..\n";
+        string file_name = "projective";
+        string extention =".jpg";
+        file_name = file_name + to_string(i) + extention;
+        cv::imwrite(file_name, projective_img);
+
+        ofstream fout;
+        file_name = to_string(i) + "_box_roi.txt";
+        fout.open(file_name);
+        fout << translated_origin.x << ", " << translated_origin.y << ", " << transform_size.width << ", " << transform_size.height << endl;
+        fout << perspectiv_transform << endl;
+        fout.close();
     }
 
 
 
     cout << "Image saving..\n";
-    imwrite("my_result.jpg", stitched_img);
+    cv::imwrite("my_result.jpg", stitched_img);
 
 }
