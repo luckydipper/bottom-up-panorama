@@ -1,5 +1,5 @@
 # What Is This Project?
-&ensp; This repository is the bottom-up implementation of panorama images. Panorama image, known as image stitching technology, transforms multiple images into one image perspective. For example, the below image is made by the `imgs` directory. 
+&ensp; This repository is the bottom-up implementation of panorama images. Panorama image, known as image stitching technology, transforms multiple images into one image perspective. For example, One result image consist of the below images(1.jpg ~ 10.jpg). 
 
 |1.jpg|2.jpg|3.jpg|4.jpg|5.jpg|6.jpg|7.jpg|8.jpg|9.jpg|10.jpg|
 |---|---|---|---|---|---|---|---|---|---|
